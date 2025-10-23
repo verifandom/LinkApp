@@ -1,11 +1,11 @@
 export const ROOT_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const minikitConfig = {
-  accountAssociation: {
-    header: process.env.ACCOUNT_ASSOCIATION_HEADER || '',
-    payload: process.env.ACCOUNT_ASSOCIATION_PAYLOAD || '',
-    signature: process.env.ACCOUNT_ASSOCIATION_SIGNATURE || '',
-  },
+    "accountAssociation": {
+      "header": "eyJmaWQiOjEzNTQzOTEsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NTFCODM4YkE3MjY2M2Q5Y0FFM2FENzU3MDI5YkM1YkM0ZDY4YTMxIn0",
+      "payload": "eyJkb21haW4iOiJsaW5rLWFwcC10d28tdGF3bnkudmVyY2VsLmFwcCJ9",
+      "signature": "C8iAlbvlsPLcIgaNOoBoXM7ljow8cxXfE/UsBiBiT4gewpL1o228ylfQuRv9KiJiowlH0b1kR82oN0sUsfcObRs="
+    },
   miniapp: {
     version: '1',
     name: 'Link',
