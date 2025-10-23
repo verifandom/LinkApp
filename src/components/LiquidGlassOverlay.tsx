@@ -197,8 +197,8 @@ export function LiquidGlassOverlay() {
           className="absolute inset-0"
           style={{
             background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(60px)',
-            WebkitBackdropFilter: 'blur(60px)',
+            backdropFilter: 'blur(80px)',
+            WebkitBackdropFilter: 'blur(80px)',
           }}
         />
 
@@ -233,6 +233,7 @@ export function LiquidGlassOverlay() {
             <>
               {currentView === 'dashboard' && (
                 <div className="w-full max-w-md space-y-6">
+                  <h1 className="text-white text-center mb-2 text-[32px] font-[Satoshi] font-bold">hello basename</h1>
                   <h2 className="text-white text-center mb-4 text-[25px] px-[-46px] py-[0px] font-[Satoshi] font-bold">Search for your favorite web2</h2>
                   
                   <div className="relative">
@@ -245,8 +246,8 @@ export function LiquidGlassOverlay() {
                       className="w-full pl-12 pr-4 py-6 rounded-2xl border-none text-white placeholder:text-white/40"
                       style={{
                         background: 'rgba(255, 255, 255, 0.1)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
                         border: '1px solid rgba(255, 255, 255, 0.2)',
                       }}
                     />
@@ -256,8 +257,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-4 mt-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -325,8 +326,8 @@ export function LiquidGlassOverlay() {
                       className="rounded-2xl p-6"
                       style={{
                         background: 'rgba(255, 255, 255, 0.05)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                       }}
                     >
@@ -346,8 +347,8 @@ export function LiquidGlassOverlay() {
                         className="w-full min-h-[120px] mb-4 rounded-xl border-none text-white placeholder:text-white/40 resize-none"
                         style={{
                           background: 'rgba(255, 255, 255, 0.1)',
-                          backdropFilter: 'blur(10px)',
-                          WebkitBackdropFilter: 'blur(10px)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
                           border: '1px solid rgba(255, 255, 255, 0.2)',
                         }}
                       />
@@ -386,8 +387,8 @@ export function LiquidGlassOverlay() {
                       className="rounded-2xl p-6 text-center"
                       style={{
                         background: 'rgba(255, 255, 255, 0.05)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                       }}
                     >
@@ -400,8 +401,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -433,8 +434,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -460,8 +461,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -564,8 +565,8 @@ export function LiquidGlassOverlay() {
                       className="rounded-2xl p-6"
                       style={{
                         background: 'rgba(255, 255, 255, 0.05)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                       }}
                     >
@@ -659,8 +660,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -679,8 +680,8 @@ export function LiquidGlassOverlay() {
                         className="w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40"
                         style={{
                           background: 'rgba(255, 255, 255, 0.1)',
-                          backdropFilter: 'blur(10px)',
-                          WebkitBackdropFilter: 'blur(10px)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
                           border: '1px solid rgba(255, 255, 255, 0.2)',
                         }}
                       />
@@ -732,8 +733,8 @@ export function LiquidGlassOverlay() {
                     className="rounded-2xl p-6"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
                   >
@@ -755,8 +756,8 @@ export function LiquidGlassOverlay() {
                       className="w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40 mb-4"
                       style={{
                         background: 'rgba(255, 255, 255, 0.1)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
                         border: '1px solid rgba(255, 255, 255, 0.2)',
                       }}
                     />
@@ -808,8 +809,8 @@ export function LiquidGlassOverlay() {
             className="relative flex items-center justify-between gap-3 px-3 py-3 rounded-full"
             style={{
               background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
               minWidth: '280px',

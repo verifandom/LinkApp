@@ -149,7 +149,7 @@ export function HalftoneCloud() {
 
     // Animation loop with wave motion
     const animate = () => {
-      time += 0.004;
+      time += 0.008;
 
       // Smooth interpolation - increased from 0.05 to 0.15 for closer following
       smoothMouseX += (mouseX - smoothMouseX) * 0.15;
