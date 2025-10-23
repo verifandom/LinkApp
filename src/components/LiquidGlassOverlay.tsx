@@ -1,10 +1,96 @@
-import { useEffect, useRef } from 'react';
-import { Link, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Link, 
+  User, 
+  Users,
+  Search,
+  Youtube,
+  Instagram,
+  Plus,
+  DollarSign,
+  ChevronLeft,
+  Check,
+  Clock,
+  XCircle,
+  Wallet
+} from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+
+type UserType = 'creator' | 'fan';
+type ViewType = 'dashboard' | 'creatorProfile' | 'onramp' | 'airdrop';
+
+interface ClaimPeriod {
+  id: string;
+  creatorName: string;
+  startDate: Date;
+  endDate: Date | null;
+  isActive: boolean;
+  proofsCount: number;
+}
+
+interface ZKProof {
+  id: string;
+  fanAddress: string;
+  creatorId: string;
+  claimPeriodId: string;
+  proofData: string;
+  submittedAt: Date;
+  status: 'pending' | 'verified' | 'rejected';
+}
+
+interface Creator {
+  id: string;
+  name: string;
+  points: string;
+  hasActiveClaimPeriod: boolean;
+  connectedSocials: string[];
+}
 
 export function LiquidGlassOverlay() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
+  const [userType, setUserType] = useState<UserType>('creator');
+  const [showLabel, setShowLabel] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [connectedAccounts, setConnectedAccounts] = useState({
+    youtube: false,
+    instagram: false,
+    twitter: false,
+  });
+  
+  // New state for the flow
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [claimPeriods, setClaimPeriods] = useState<ClaimPeriod[]>([]);
+  const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [balance, setBalance] = useState(0);
+  const [proofText, setProofText] = useState('');
+  const [submittedProofs, setSubmittedProofs] = useState<ZKProof[]>([]);
+  const [selectedClaimPeriodForAirdrop, setSelectedClaimPeriodForAirdrop] = useState<ClaimPeriod | null>(null);
+  const [airdropAmount, setAirdropAmount] = useState('');
+  
+  // Mock creators data
+  const mockCreators: Creator[] = [
+    { id: '1', name: 'Sarah Chen', points: '12.5K', hasActiveClaimPeriod: true, connectedSocials: ['youtube', 'instagram'] },
+    { id: '2', name: 'Alex Rivera', points: '10.2K', hasActiveClaimPeriod: false, connectedSocials: ['twitter', 'youtube'] },
+    { id: '3', name: 'Jordan Kim', points: '9.8K', hasActiveClaimPeriod: true, connectedSocials: ['instagram'] },
+    { id: '4', name: 'Taylor Swift', points: '8.9K', hasActiveClaimPeriod: false, connectedSocials: ['twitter'] },
+    { id: '5', name: 'Morgan Lee', points: '7.6K', hasActiveClaimPeriod: true, connectedSocials: ['youtube'] },
+  ];
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -89,8 +175,10 @@ export function LiquidGlassOverlay() {
       <div 
         className="relative rounded-3xl overflow-hidden pointer-events-auto"
         style={{
-          width: '600px',
-          height: '400px',
+          width: isMobile ? 'calc(100% - 32px)' : '600px',
+          height: isMobile ? 'calc(100% - 180px)' : '400px',
+          maxWidth: isMobile ? '400px' : '600px',
+          margin: isMobile ? '16px 16px 100px 16px' : '0',
           border: '1px solid rgba(255, 255, 255, 0.18)',
           boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}
@@ -139,42 +227,668 @@ export function LiquidGlassOverlay() {
           }}
         />
 
-        {/* User Button - Top Left */}
-        <div className="absolute top-6 left-6 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full transition-all duration-300 hover:scale-110"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-            }}
-            onClick={() => console.log('User clicked')}
-          >
-            <User className="h-5 w-5 text-white" />
-          </Button>
-        </div>
+        {/* Main Content */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-12 overflow-y-auto">
+          {userType === 'fan' ? (
+            <>
+              {currentView === 'dashboard' && (
+                <div className="w-full max-w-md space-y-6">
+                  <h2 className="text-white text-center mb-4 text-[25px] px-[-46px] py-[0px] font-[Satoshi] font-bold">Search for your favorite web2</h2>
+                  
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60" />
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search creators..."
+                      className="w-full pl-12 pr-4 py-6 rounded-2xl border-none text-white placeholder:text-white/40"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                      }}
+                    />
+                  </div>
 
-        {/* Connect Button - Top Right */}
-        <div className="absolute top-6 right-6 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full transition-all duration-300 hover:scale-110"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-            }}
-            onClick={() => console.log('Connect clicked')}
-          >
-            <Link className="h-5 w-5 text-white" />
-          </Button>
+                  <div 
+                    className="rounded-2xl p-4 mt-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <h3 className="text-white/80 text-sm mb-3 px-2 font-[Satoshi] text-[20px]">Top Creators</h3>
+                    <div className="space-y-2">
+                      {mockCreators
+                        .filter(c => searchQuery === '' || c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((creator, idx) => (
+                        <div
+                          key={creator.id}
+                          onClick={() => {
+                            setSelectedCreator(creator);
+                            setCurrentView('creatorProfile');
+                          }}
+                          className="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 hover:scale-105 cursor-pointer"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span 
+                              className="flex items-center justify-center w-6 h-6 rounded-full text-xs"
+                              style={{
+                                background: idx < 3 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                color: idx < 3 ? '#ffd700' : '#fff',
+                              }}
+                            >
+                              {idx + 1}
+                            </span>
+                            <span className="text-white text-sm font-[Satoshi]">{creator.name}</span>
+                            {creator.hasActiveClaimPeriod && (
+                              <span className="text-xs text-green-400">● Active</span>
+                            )}
+                          </div>
+                          <span className="text-white/60 text-xs">{creator.points}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentView === 'creatorProfile' && selectedCreator && (
+                <div className="w-full max-w-md space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setCurrentView('dashboard');
+                        setSelectedCreator(null);
+                        setProofText('');
+                      }}
+                      className="rounded-full"
+                      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <ChevronLeft className="h-5 w-5 text-white" />
+                    </Button>
+                    <h2 className="text-white text-[25px] font-[Satoshi] font-bold">{selectedCreator.name}</h2>
+                  </div>
+
+                  {selectedCreator.hasActiveClaimPeriod ? (
+                    <div 
+                      className="rounded-2xl p-6"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <Clock className="h-5 w-5 text-green-400" />
+                        <h3 className="text-white font-[Satoshi] text-[20px]">Active Claim Period</h3>
+                      </div>
+                      
+                      <p className="text-white/60 text-sm mb-4">
+                        Submit your zk-TLS proof to participate in this creator's airdrop
+                      </p>
+
+                      <Textarea
+                        value={proofText}
+                        onChange={(e) => setProofText(e.target.value)}
+                        placeholder="Paste your zk-TLS proof data here..."
+                        className="w-full min-h-[120px] mb-4 rounded-xl border-none text-white placeholder:text-white/40 resize-none"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                        }}
+                      />
+
+                      <Button
+                        onClick={() => {
+                          if (proofText.trim()) {
+                            const newProof: ZKProof = {
+                              id: Date.now().toString(),
+                              fanAddress: '0x1234...5678',
+                              creatorId: selectedCreator.id,
+                              claimPeriodId: 'active-period',
+                              proofData: proofText,
+                              submittedAt: new Date(),
+                              status: 'pending'
+                            };
+                            setSubmittedProofs([...submittedProofs, newProof]);
+                            setProofText('');
+                            alert('Proof submitted successfully!');
+                          }
+                        }}
+                        disabled={!proofText.trim()}
+                        className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
+                        style={{
+                          background: proofText.trim() 
+                            ? 'rgba(34, 197, 94, 0.2)' 
+                            : 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                        }}
+                      >
+                        <span className="text-white font-[Satoshi]">Submit Proof</span>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="rounded-2xl p-6 text-center"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <XCircle className="h-12 w-12 text-white/40 mx-auto mb-3" />
+                      <p className="text-white/60">No active claim period</p>
+                    </div>
+                  )}
+
+                  <div 
+                    className="rounded-2xl p-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <h3 className="text-white/80 text-sm mb-3 font-[Satoshi] text-[20px]">Creator Info</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-white/60 text-sm">Points</span>
+                        <span className="text-white text-sm">{selectedCreator.points}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60 text-sm">Connected Socials</span>
+                        <span className="text-white text-sm">{selectedCreator.connectedSocials.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {currentView === 'dashboard' && (
+                <div className="w-full max-w-md space-y-6">
+                  <h2 className="text-white text-center mb-4 text-[25px] font-[Satoshi] font-bold">
+                    Creator Dashboard
+                  </h2>
+
+                  {/* Balance & Actions */}
+                  <div 
+                    className="rounded-2xl p-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <div className="text-center mb-4">
+                      <div className="text-white/60 text-sm mb-2">Balance</div>
+                      <div className="text-white text-[32px] font-[Satoshi] font-bold">${balance.toFixed(2)}</div>
+                    </div>
+                    <Button
+                      onClick={() => setCurrentView('onramp')}
+                      className="w-full rounded-xl py-6 mb-3 transition-all duration-200 hover:scale-105"
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                      }}
+                    >
+                      <DollarSign className="h-5 w-5 mr-2 text-blue-400" />
+                      <span className="text-white font-[Satoshi]">Add Funds (Coinbase)</span>
+                    </Button>
+                  </div>
+
+                  {/* Social Media Connections */}
+                  <div 
+                    className="rounded-2xl p-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <h3 className="text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]">
+                      Connect Your Accounts
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setConnectedAccounts(prev => ({ ...prev, youtube: !prev.youtube }))}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+                        style={{
+                          background: connectedAccounts.youtube ? 'rgba(255, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                          border: connectedAccounts.youtube ? '1px solid rgba(255, 0, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Youtube className="h-5 w-5 text-red-500" />
+                          <span className="text-white text-sm font-[Satoshi]">YouTube</span>
+                        </div>
+                        <span className="text-xs text-white/60">
+                          {connectedAccounts.youtube ? 'Connected' : 'Connect'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setConnectedAccounts(prev => ({ ...prev, instagram: !prev.instagram }))}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+                        style={{
+                          background: connectedAccounts.instagram ? 'rgba(225, 48, 108, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                          border: connectedAccounts.instagram ? '1px solid rgba(225, 48, 108, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Instagram className="h-5 w-5 text-pink-500" />
+                          <span className="text-white text-sm font-[Satoshi]">Instagram</span>
+                        </div>
+                        <span className="text-xs text-white/60">
+                          {connectedAccounts.instagram ? 'Connected' : 'Connect'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setConnectedAccounts(prev => ({ ...prev, twitter: !prev.twitter }))}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+                        style={{
+                          background: connectedAccounts.twitter ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                          border: connectedAccounts.twitter ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-5 w-5 flex items-center justify-center">
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-white">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                          </div>
+                          <span className="text-white text-sm font-[Satoshi]">X</span>
+                        </div>
+                        <span className="text-xs text-white/60">
+                          {connectedAccounts.twitter ? 'Connected' : 'Connect'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Create Claim Period (only if at least one social is connected) */}
+                  {(connectedAccounts.youtube || connectedAccounts.instagram || connectedAccounts.twitter) && (
+                    <Button
+                      onClick={() => {
+                        const newPeriod: ClaimPeriod = {
+                          id: Date.now().toString(),
+                          creatorName: 'You',
+                          startDate: new Date(),
+                          endDate: null,
+                          isActive: true,
+                          proofsCount: 0
+                        };
+                        setClaimPeriods([...claimPeriods, newPeriod]);
+                        alert('Claim period created!');
+                      }}
+                      disabled={claimPeriods.some(p => p.isActive)}
+                      className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
+                      style={{
+                        background: claimPeriods.some(p => p.isActive) 
+                          ? 'rgba(255, 255, 255, 0.05)' 
+                          : 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                      }}
+                    >
+                      <Plus className="h-5 w-5 mr-2 text-white" />
+                      <span className="text-white font-[Satoshi]">
+                        {claimPeriods.some(p => p.isActive) ? 'Period Already Active' : 'Create Claim Period'}
+                      </span>
+                    </Button>
+                  )}
+
+                  {/* Claim Periods List */}
+                  {claimPeriods.length > 0 && (
+                    <div 
+                      className="rounded-2xl p-6"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <h3 className="text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]">
+                        Claim Periods
+                      </h3>
+                      <div className="space-y-3">
+                        {claimPeriods.map((period) => (
+                          <div
+                            key={period.id}
+                            className="rounded-xl p-4"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: period.isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {period.isActive ? (
+                                  <Clock className="h-4 w-4 text-green-400" />
+                                ) : (
+                                  <Check className="h-4 w-4 text-white/60" />
+                                )}
+                                <span className="text-white text-sm font-[Satoshi]">
+                                  {period.isActive ? 'Active' : 'Closed'}
+                                </span>
+                              </div>
+                              <span className="text-white/60 text-xs">
+                                {period.proofsCount} proofs
+                              </span>
+                            </div>
+                            <div className="text-white/60 text-xs mb-3">
+                              Started: {period.startDate.toLocaleDateString()}
+                            </div>
+                            {period.isActive ? (
+                              <Button
+                                onClick={() => {
+                                  setClaimPeriods(claimPeriods.map(p => 
+                                    p.id === period.id 
+                                      ? { ...p, isActive: false, endDate: new Date() }
+                                      : p
+                                  ));
+                                }}
+                                className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.2)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                }}
+                              >
+                                <span className="text-white text-sm font-[Satoshi]">Close Period</span>
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => {
+                                  setSelectedClaimPeriodForAirdrop(period);
+                                  setCurrentView('airdrop');
+                                }}
+                                className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
+                                style={{
+                                  background: 'rgba(59, 130, 246, 0.2)',
+                                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                                }}
+                              >
+                                <span className="text-white text-sm font-[Satoshi]">Setup Airdrop</span>
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {currentView === 'onramp' && (
+                <div className="w-full max-w-md space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setCurrentView('dashboard')}
+                      className="rounded-full"
+                      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <ChevronLeft className="h-5 w-5 text-white" />
+                    </Button>
+                    <h2 className="text-white text-[25px] font-[Satoshi] font-bold">Add Funds</h2>
+                  </div>
+
+                  <div 
+                    className="rounded-2xl p-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <div className="text-center mb-6">
+                      <DollarSign className="h-16 w-16 text-blue-400 mx-auto mb-4" />
+                      <h3 className="text-white font-[Satoshi] text-[20px] mb-2">Coinbase Onramp</h3>
+                      <p className="text-white/60 text-sm">
+                        Connect your Coinbase account to add funds
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Input
+                        type="number"
+                        placeholder="Amount (USD)"
+                        className="w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                        }}
+                      />
+
+                      <Button
+                        onClick={() => {
+                          const amount = Math.random() * 500 + 100;
+                          setBalance(balance + amount);
+                          setCurrentView('dashboard');
+                          alert(`Successfully added ${amount.toFixed(2)} to your balance!`);
+                        }}
+                        className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
+                        style={{
+                          background: 'rgba(59, 130, 246, 0.2)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                        }}
+                      >
+                        <span className="text-white font-[Satoshi]">Complete Purchase</span>
+                      </Button>
+
+                      <p className="text-white/40 text-xs text-center mt-4">
+                        Mock integration - In production, this would connect to Coinbase API
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentView === 'airdrop' && selectedClaimPeriodForAirdrop && (
+                <div className="w-full max-w-md space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setCurrentView('dashboard');
+                        setSelectedClaimPeriodForAirdrop(null);
+                        setAirdropAmount('');
+                      }}
+                      className="rounded-full"
+                      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <ChevronLeft className="h-5 w-5 text-white" />
+                    </Button>
+                    <h2 className="text-white text-[25px] font-[Satoshi] font-bold">Setup Airdrop</h2>
+                  </div>
+
+                  <div 
+                    className="rounded-2xl p-6"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <div className="mb-6">
+                      <div className="text-white/60 text-sm mb-2">Your Balance</div>
+                      <div className="text-white text-[28px] font-[Satoshi] font-bold">${balance.toFixed(2)}</div>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="text-white/60 text-sm mb-2">Proofs Submitted</div>
+                      <div className="text-white text-[20px] font-[Satoshi]">{selectedClaimPeriodForAirdrop.proofsCount}</div>
+                    </div>
+
+                    <Input
+                      type="number"
+                      value={airdropAmount}
+                      onChange={(e) => setAirdropAmount(e.target.value)}
+                      placeholder="Total airdrop amount (USD)"
+                      className="w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40 mb-4"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                      }}
+                    />
+
+                    {airdropAmount && selectedClaimPeriodForAirdrop.proofsCount > 0 && (
+                      <div className="mb-4 p-4 rounded-xl" style={{ background: 'rgba(255, 255, 255, 0.08)' }}>
+                        <div className="text-white/60 text-sm mb-1">Amount per participant</div>
+                        <div className="text-white font-[Satoshi]">
+                          ${(parseFloat(airdropAmount) / selectedClaimPeriodForAirdrop.proofsCount).toFixed(2)}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() => {
+                        if (parseFloat(airdropAmount) <= balance) {
+                          setBalance(balance - parseFloat(airdropAmount));
+                          setCurrentView('dashboard');
+                          setAirdropAmount('');
+                          setSelectedClaimPeriodForAirdrop(null);
+                          alert(`Airdrop of ${airdropAmount} distributed successfully!`);
+                        } else {
+                          alert('Insufficient balance!');
+                        }
+                      }}
+                      disabled={!airdropAmount || parseFloat(airdropAmount) <= 0 || parseFloat(airdropAmount) > balance}
+                      className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
+                      style={{
+                        background: airdropAmount && parseFloat(airdropAmount) > 0 && parseFloat(airdropAmount) <= balance
+                          ? 'rgba(34, 197, 94, 0.2)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                      }}
+                    >
+                      <span className="text-white font-[Satoshi]">Distribute Airdrop</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Mobile: Dynamic Island at Bottom */}
+      {isMobile && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+          <div
+            className="relative flex items-center justify-between gap-3 px-3 py-3 rounded-full"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+              minWidth: '280px',
+            }}
+          >
+            {/* Profile Toggle Button */}
+            <motion.button
+              animate={{
+                width: showLabel ? (userType === 'creator' ? '110px' : '70px') : '36px',
+                borderRadius: showLabel ? '18px' : '50%',
+              }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="flex-shrink-0 flex items-center justify-start gap-2 h-9 px-2 overflow-hidden"
+              style={{
+                background: userType === 'creator' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+              onClick={() => {
+                setUserType(userType === 'creator' ? 'fan' : 'creator');
+                setShowLabel(true);
+                setTimeout(() => setShowLabel(false), 1000);
+              }}
+            >
+              <div className="flex-shrink-0 flex items-center justify-center w-5 h-5">
+                {userType === 'creator' ? (
+                  <User className="h-4 w-4 text-white" />
+                ) : (
+                  <Users className="h-4 w-4 text-white" />
+                )}
+              </div>
+              <AnimatePresence>
+                {showLabel && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-white uppercase tracking-wider whitespace-nowrap overflow-hidden"
+                    style={{ fontSize: '11px' }}
+                  >
+                    {userType === 'creator' ? 'Creator' : 'Fan'}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
+            {/* App Name */}
+            <AnimatePresence>
+              {!showLabel && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex-1 text-center"
+                >
+                  <span className="text-white uppercase tracking-widest" style={{ fontSize: '14px', fontWeight: '600' }}>
+                    Link
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Connect Wallet Button */}
+            <button
+              className="flex-shrink-0 rounded-full p-2 transition-all duration-300 hover:scale-110"
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                width: '36px',
+                height: '36px',
+              }}
+              onClick={() => console.log('Connect clicked')}
+            >
+              <Wallet className="h-4 w-4 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
