@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { Link, User } from 'lucide-react';
+import { Button } from './ui/button';
 
 export function LiquidGlassOverlay() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,7 +87,7 @@ export function LiquidGlassOverlay() {
   return (
     <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
       <div 
-        className="relative rounded-3xl overflow-hidden"
+        className="relative rounded-3xl overflow-hidden pointer-events-auto"
         style={{
           width: '600px',
           height: '400px',
@@ -136,6 +138,42 @@ export function LiquidGlassOverlay() {
             background: 'linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)',
           }}
         />
+
+        {/* User Button - Top Left */}
+        <div className="absolute top-6 left-6 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full transition-all duration-300 hover:scale-110"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+            }}
+            onClick={() => console.log('User clicked')}
+          >
+            <User className="h-5 w-5 text-white" />
+          </Button>
+        </div>
+
+        {/* Connect Button - Top Right */}
+        <div className="absolute top-6 right-6 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full transition-all duration-300 hover:scale-110"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+            }}
+            onClick={() => console.log('Connect clicked')}
+          >
+            <Link className="h-5 w-5 text-white" />
+          </Button>
+        </div>
       </div>
     </div>
   );
