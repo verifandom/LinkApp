@@ -1,9 +1,21 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { minikitConfig } from "@/minikit.config";
 
 export const metadata: Metadata = {
-  title: "Animated Halftone Cloud Background",
-  description: "Beautiful animated halftone cloud background with liquid glass overlay",
+  title: minikitConfig.miniapp.ogTitle || minikitConfig.miniapp.name,
+  description: minikitConfig.miniapp.ogDescription || minikitConfig.miniapp.description,
+  openGraph: {
+    title: minikitConfig.miniapp.ogTitle || minikitConfig.miniapp.name,
+    description: minikitConfig.miniapp.ogDescription || minikitConfig.miniapp.description,
+    images: [minikitConfig.miniapp.ogImageUrl],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: minikitConfig.miniapp.ogTitle || minikitConfig.miniapp.name,
+    description: minikitConfig.miniapp.ogDescription || minikitConfig.miniapp.description,
+    images: [minikitConfig.miniapp.ogImageUrl],
+  },
 };
 
 export default function RootLayout({
