@@ -802,20 +802,19 @@ export function LiquidGlassOverlay() {
         </div>
       </div>
 
-      {/* Mobile: Dynamic Island at Bottom */}
-      {isMobile && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-          <div
-            className="relative flex items-center justify-between gap-3 px-3 py-3 rounded-full"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(40px)',
-              WebkitBackdropFilter: 'blur(40px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-              minWidth: '280px',
-            }}
-          >
+      {/* Dynamic Island at Bottom */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <div
+          className="relative flex items-center justify-between gap-3 px-3 py-3 rounded-full"
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+            minWidth: '280px',
+          }}
+        >
             {/* Profile Toggle Button */}
             <motion.button
               animate={{
@@ -889,7 +888,6 @@ export function LiquidGlassOverlay() {
             </button>
           </div>
         </div>
-      )}
     </div>
   );
 }
