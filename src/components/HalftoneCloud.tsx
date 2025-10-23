@@ -17,6 +17,19 @@ export function HalftoneCloud() {
     const charSpacing = 6;
     let gridRef: boolean[][] = [];
     let time = 0;
+    let mouseX = -1000;
+    let mouseY = -1000;
+    let smoothMouseX = -1000;
+    let smoothMouseY = -1000;
+    // Trail system: store previous positions for long-lasting effect
+    const trailLength = 15;
+    const trail: { x: number; y: number }[] = [];
+    for (let i = 0; i < trailLength; i++) {
+      trail.push({ x: -1000, y: -1000 });
+    }
+    
+    // Click impacts: store temporary impact effects
+    const impacts: { x: number; y: number; time: number }[] = [];
 
     // Noise function for organic patterns
     const noise2D = (x: number, y: number, seed: number = 0) => {
@@ -105,9 +118,54 @@ export function HalftoneCloud() {
     updateSize();
     window.addEventListener('resize', updateSize);
 
+    // Mouse tracking for distortion effect
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      mouseX = (e.clientX - rect.left) * scaleX;
+      mouseY = (e.clientY - rect.top) * scaleY;
+    };
+
+    const handleMouseLeave = () => {
+      mouseX = -1000;
+      mouseY = -1000;
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      
+      // Add new impact at click position
+      impacts.push({ x: clickX, y: clickY, time: 0 });
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener('click', handleClick);
+
     // Animation loop with wave motion
     const animate = () => {
       time += 0.004;
+
+      // Smooth interpolation - increased from 0.05 to 0.15 for closer following
+      smoothMouseX += (mouseX - smoothMouseX) * 0.15;
+      smoothMouseY += (mouseY - smoothMouseY) * 0.15;
+
+      // Update trail - shift old positions and add current position
+      trail.unshift({ x: smoothMouseX, y: smoothMouseY });
+      trail.pop();
+
+      // Update and remove old impacts
+      for (let i = impacts.length - 1; i >= 0; i--) {
+        impacts[i].time += 0.016; // Approximate frame time (60fps)
+        if (impacts[i].time > 1.5) { // Remove after 1.5 seconds
+          impacts.splice(i, 1);
+        }
+      }
 
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -137,8 +195,48 @@ export function HalftoneCloud() {
             const waveY = Math.sin(time * 0.8 + col * 0.06) * 6;
             
             // Combined wave effect with secondary waves
-            const offsetX = waveX + Math.sin(time * 0.5 + col * 0.05) * 3;
-            const offsetY = waveY + Math.cos(time * 0.6 + row * 0.04) * 3;
+            let offsetX = waveX + Math.sin(time * 0.5 + col * 0.05) * 3;
+            let offsetY = waveY + Math.cos(time * 0.6 + row * 0.04) * 3;
+            
+            // Subtle mouse distortion effect with long-lasting trail
+            // Apply distortion from all trail points (oldest to newest)
+            for (let i = trail.length - 1; i >= 0; i--) {
+              const trailPoint = trail[i];
+              const dx = x - trailPoint.x;
+              const dy = y - trailPoint.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const distortionRadius = 100; // Reduced from 150 for smaller effect area
+              
+              if (distance < distortionRadius) {
+                // Trail strength: newer positions (lower i) have stronger effect
+                const trailStrength = (trail.length - i) / trail.length;
+                const strength = 1 - (distance / distortionRadius);
+                // Much smaller distortion amount (reduced from 8 to 3)
+                const distortionAmount = strength * strength * 3 * trailStrength;
+                const angle = Math.atan2(dy, dx);
+                offsetX += Math.cos(angle) * distortionAmount;
+                offsetY += Math.sin(angle) * distortionAmount;
+              }
+            }
+
+            // Click impact effects - radial outward push
+            for (const impact of impacts) {
+              const dx = x - impact.x;
+              const dy = y - impact.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const impactRadius = 200;
+              
+              if (distance < impactRadius) {
+                // Fade out over time (1.5 seconds total)
+                const timeFade = 1 - (impact.time / 1.5);
+                const strength = 1 - (distance / impactRadius);
+                // Outward radial push with strong initial force
+                const impactAmount = strength * strength * 20 * timeFade;
+                const angle = Math.atan2(dy, dx);
+                offsetX += Math.cos(angle) * impactAmount;
+                offsetY += Math.sin(angle) * impactAmount;
+              }
+            }
             
             // Wave-based opacity variation for depth
             const opacity = 0.6 + Math.sin(time + col * 0.08 + row * 0.08) * 0.4;
@@ -158,6 +256,9 @@ export function HalftoneCloud() {
 
     return () => {
       window.removeEventListener('resize', updateSize);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('click', handleClick);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
