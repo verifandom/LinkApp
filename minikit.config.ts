@@ -1,10 +1,10 @@
-export const ROOT_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+export const ROOT_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
 
 export const minikitConfig = {
-  "accountAssociation": {
-    "header": "eyJmaWQiOjEzNTQzOTEsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NTFCODM4YkE3MjY2M2Q5Y0FFM2FENzU3MDI5YkM1YkM0ZDY4YTMxIn0",
-    "payload": "eyJkb21haW4iOiJsaW5rLWFwcC10d28tdGF3bnkudmVyY2VsLmFwcCJ9",
-    "signature": "C8iAlbvlsPLcIgaNOoBoXM7ljow8cxXfE/UsBiBiT4gewpL1o228ylfQuRv9KiJiowlH0b1kR82oN0sUsfcObRs="
+  accountAssociation: {
+    header: "eyJmaWQiOjEzNTQzOTEsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NTFCODM4YkE3MjY2M2Q5Y0FFM2FENzU3MDI5YkM1YkM0ZDY4YTMxIn0",
+    payload: "eyJkb21haW4iOiJsaW5rLWFwcC10d28tdGF3bnkudmVyY2VsLmFwcCJ9",
+    signature: "C8iAlbvlsPLcIgaNOoBoXM7ljow8cxXfE/UsBiBiT4gewpL1o228ylfQuRv9KiJiowlH0b1kR82oN0sUsfcObRs="
   },
   miniapp: {
     version: '1',
@@ -17,8 +17,8 @@ export const minikitConfig = {
     splashBackgroundColor: '#000000',
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
-    primaryCategory: 'social',
-    tags: ['creator', 'fan', 'airdrop', 'zk-tls', 'web2', 'social'],
+    primaryCategory: 'social' as const,
+    tags: ['creator', 'fan', 'airdrop', 'zktls', 'web2'],
     heroImageUrl: `${ROOT_URL}/hero.png`,
     tagline: 'Bridge web2 creators to web3',
     ogTitle: 'Link - Connect Creators with Fans',
