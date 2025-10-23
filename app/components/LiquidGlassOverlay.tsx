@@ -174,12 +174,13 @@ export function LiquidGlassOverlay() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
-      <div 
+      <div
         className="relative rounded-3xl overflow-hidden pointer-events-auto"
         style={{
           width: isMobile ? 'calc(100% - 32px)' : '600px',
-          height: isMobile ? 'calc(100% - 180px)' : '400px',
+          height: isMobile ? 'calc(100% - 180px)' : 'calc(100vh - 160px)',
           maxWidth: isMobile ? '400px' : '600px',
+          maxHeight: isMobile ? 'none' : '800px',
           margin: isMobile ? '16px 16px 100px 16px' : '0',
           border: '1px solid rgba(255, 255, 255, 0.18)',
           boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
@@ -230,7 +231,8 @@ export function LiquidGlassOverlay() {
         />
 
         {/* Main Content */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-12 overflow-y-auto">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-start py-8 px-12 overflow-y-auto">
+          <div className="w-full max-w-md">{/* Wrapper for centering */}
           {userType === 'fan' ? (
             <>
               {currentView === 'dashboard' && (
@@ -801,6 +803,7 @@ export function LiquidGlassOverlay() {
               )}
             </>
           )}
+          </div>{/* End wrapper */}
         </div>
       </div>
 
