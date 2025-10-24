@@ -56,18 +56,6 @@ export async function POST(request: NextRequest) {
 
     try {
       const proof = await generateSubscriberProof(accessToken, channelId);
-
-      const isVerified = await verifyReclaimProof(proof);
-      if (!isVerified) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Proof verification failed',
-          },
-          { status: 400 }
-        );
-      }
-
       const onchainProof = transformProofForOnchain(proof);
 
       return NextResponse.json(

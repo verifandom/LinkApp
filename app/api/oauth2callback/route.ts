@@ -1,45 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { sessionStore } from '@/lib/server/session-store';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * GET /api/oauth2callback
  *
- * Handles Google OAuth callback
- * Exchanges auth code for tokens and stores session
+ * Handles Google OAuth callback from the browser OAuth flow
+ * Exchanges auth code for tokens and stores session data in-memory
+ *
+ * Flow:
+ * 1. /api/auth/youtube/start generates sessionId and returns authUrl with sessionId in state
+ * 2. User opens authUrl and authorizes with Google
+ * 3. Google redirects to this endpoint with code + state
+ * 4. We exchange code for tokens, fetch channel info, store in sessionStore
+ * 5. User returns to mini app and polls /api/oauth/poll?sessionId=xxx
  *
  * Query params:
  * - code: Authorization code from Google
- * - state: Verification type (creator/user)
+ * - state: Format "type:sessionId" (type is 'creator' or 'user')
  *
- * Redirects to frontend with sessionId
+ * Shows success page and allows user to return to Farcaster
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const state = searchParams.get('state') || 'user';
+    const state = searchParams.get('state') || '';
     const error = searchParams.get('error');
-    const sessionId = searchParams.get('session');
+
+    // Get domain from env variables
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';
 
     // Handle user cancellation or errors
     if (error) {
       return NextResponse.redirect(
-        new URL(`/?error=${error}`, process.env.NEXT_PUBLIC_API_URL)
+        new URL(`/?error=${error}`, appDomain)
       );
     }
 
     if (!code) {
       return NextResponse.redirect(
-        new URL('/?error=no_code', process.env.NEXT_PUBLIC_API_URL)
+        new URL('/?error=no_code', appDomain)
+      );
+    }
+
+    // Extract sessionId from state parameter (format: "type:sessionId")
+    // State is passed in OAuth standard way by /api/auth/youtube/start
+    const sessionId = state.includes(':') ? state.split(':')[1] : null;
+    const type = state.includes(':') ? state.split(':')[0] : 'user';
+
+    if (!sessionId) {
+      return NextResponse.redirect(
+        new URL('/?error=invalid_state', appDomain)
       );
     }
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.REDIRECT_URI || 'http://localhost:3000/oauth2callback'
+      process.env.REDIRECT_URI || 'http://localhost:3000/api/oauth2callback'
     );
 
     // Exchange authorization code for tokens
@@ -82,7 +101,7 @@ export async function GET(request: NextRequest) {
         channelName,
       } as any);
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const farcasterDeepLink = process.env.NEXT_PUBLIC_FARCASTER_UNIVERSAL_LINK || 'farcaster://miniapp/link';
 
       // For Farcaster mini app, show a page that instructs user to return
       const html = `
@@ -145,11 +164,21 @@ export async function GET(request: NextRequest) {
               <p>Your YouTube channel has been verified successfully.</p>
               <p><strong>Return to Farcaster</strong> to complete the setup.</p>
               <p style="font-size: 0.875rem; opacity: 0.8; margin-top: 1rem;">Session ID: ${sessionId}</p>
+              <button class="button" onclick="returnToFarcaster()" style="margin-top: 2rem; display: inline-block; padding: 1rem 2rem; background: rgba(255, 255, 255, 0.2); border: 2px solid white; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                Return to Farcaster
+              </button>
             </div>
             <script>
-              // Auto-close after showing success message
+              function returnToFarcaster() {
+                const farcasterLink = '${farcasterDeepLink}?session=${sessionId}';
+                window.location.href = farcasterLink;
+                // Fallback: close window after a delay
+                setTimeout(() => window.close(), 1000);
+              }
+
+              // Auto-close or redirect after showing success message
               setTimeout(() => {
-                window.close();
+                returnToFarcaster();
               }, 3000);
             </script>
           </body>
@@ -218,8 +247,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in OAuth callback:', error);
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';
     return NextResponse.redirect(
-      new URL('/?error=auth_failed', process.env.NEXT_PUBLIC_API_URL)
+      new URL('/?error=auth_failed', appDomain)
     );
   }
 }

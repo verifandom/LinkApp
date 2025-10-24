@@ -222,7 +222,7 @@ export function LiquidGlassOverlay({
       } catch (error) {
         console.error('OAuth polling error:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 10000); // Poll every 10 seconds
 
     // Stop polling after 5 minutes
     const timeout = setTimeout(() => {
@@ -899,26 +899,32 @@ export function LiquidGlassOverlay({
                             try {
                               setMessage('Redirecting to YouTube OAuth...');
 
+                              // Get OAuth URL and session ID from backend
+                              // /api/auth/youtube generates a unique sessionId and includes it in the OAuth state
                               const authResponse = await fetch('/api/auth/youtube?type=creator');
-                              const { authUrl } = await authResponse.json();
+                              const { authUrl, sessionId } = await authResponse.json();
 
-                              // Generate and store session ID for polling
-                              const sessionId = crypto.randomUUID();
+                              if (!sessionId) {
+                                setMessage('Failed to initialize OAuth session');
+                                return;
+                              }
+
+                              // Store session ID and wallet for polling after OAuth completes
                               sessionStorage.setItem('youtube-auth-wallet', walletAddress);
                               sessionStorage.setItem('youtube-oauth-session', sessionId);
 
-                              // Add session ID to auth URL
-                              const authUrlWithSession = `${authUrl}&session=${sessionId}`;
+                              // Note: sessionId is already in the OAuth state parameter (via authUrl)
+                              // so we don't need to append it as a query param
 
                               // On mini app, use SDK to open external link
                               if (isInMiniApp) {
                                 try {
                                   const { default: sdk } = await import('@farcaster/miniapp-sdk');
-                                  await sdk.actions.openUrl(authUrlWithSession);
+                                  await sdk.actions.openUrl(authUrl);
                                   setMessage('Complete OAuth in browser, then return to app');
                                 } catch (error) {
                                   console.error('SDK openUrl error:', error);
-                                  window.location.href = authUrlWithSession;
+                                  window.location.href = authUrl;
                                 }
                               } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
                                 // Mobile browser: redirect directly
