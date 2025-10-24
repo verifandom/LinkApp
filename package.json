@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "prisma db seed",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset --force"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",
@@ -69,6 +75,8 @@
   },
   "devDependencies": {
     "prisma": "^5.11.0",
+    "ts-node": "^10.9.2",
+    "node-loader": "^2.0.0",
     "@types/node": "^20.10.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

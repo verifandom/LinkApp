@@ -9,10 +9,19 @@ export async function GET(request: NextRequest) {
   try {
     const claimPeriods = await getAllClaimPeriods();
 
+    // Convert BigInt values to strings for JSON serialization
+    const serializedPeriods = claimPeriods.map((period) => ({
+      ...period,
+      startTime: period.startTime.toString(),
+      endTime: period.endTime.toString(),
+      claimPeriodId: period.claimPeriodId.toString(),
+    }));
+    console.log(serializedPeriods);
+
     return NextResponse.json(
       {
         success: true,
-        claimPeriods,
+        claimPeriods: serializedPeriods,
       },
       { status: 200 }
     );

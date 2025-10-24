@@ -43,11 +43,24 @@ export async function POST(request: NextRequest) {
       data: { isOpen: false, updatedAt: new Date() },
     });
 
+    // Serialize BigInt fields to strings for JSON response
+    const serializedAirdrop = {
+      ...airdrop,
+      totalTokenAmount: airdrop.totalTokenAmount.toString(),
+      amountPerUser: airdrop.amountPerUser.toString(),
+      claimPeriod: {
+        ...airdrop.claimPeriod,
+        startTime: airdrop.claimPeriod.startTime.toString(),
+        endTime: airdrop.claimPeriod.endTime.toString(),
+        claimPeriodId: airdrop.claimPeriod.claimPeriodId.toString(),
+      },
+    };
+
     return NextResponse.json(
       {
         success: true,
         message: 'Airdrop synced successfully',
-        airdrop,
+        airdrop: serializedAirdrop,
       },
       { status: 200 }
     );

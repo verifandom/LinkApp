@@ -1,3 +1,5 @@
+'use server';
+
 import { ReclaimClient } from '@reclaimprotocol/zk-fetch';
 import { verifyProof, transformForOnchain } from '@reclaimprotocol/js-sdk';
 
@@ -58,7 +60,7 @@ export async function generateCreatorProof(
       },
       responseMatches: [
         {
-          type: 'contains',
+          type: 'contains' as const,
           value: channelId,
         },
       ],
@@ -119,7 +121,7 @@ export async function generateSubscriberProof(
       },
       responseMatches: [
         {
-          type: 'contains',
+          type: 'contains' as const,
           value: channelId,
         },
       ],
@@ -175,7 +177,7 @@ export async function verifyReclaimProof(
 /**
  * Transform proof for on-chain submission
  */
-export function transformProofForOnchain(proof: ReclaimProof): any {
+export async function transformProofForOnchain(proof: ReclaimProof): Promise<any> {
   try {
     return transformForOnchain(proof);
   } catch (error) {
