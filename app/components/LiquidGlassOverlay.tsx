@@ -63,7 +63,15 @@ interface Creator {
   connectedSocials: string[];
 }
 
-export function LiquidGlassOverlay() {
+interface LiquidGlassOverlayProps {
+  farcasterWalletAddress: Address | null;
+  isInMiniApp: boolean;
+}
+
+export function LiquidGlassOverlay({
+  farcasterWalletAddress,
+  isInMiniApp,
+}: LiquidGlassOverlayProps) {
   const [userType, setUserType] = useState<UserType>('creator');
   const [showLabel, setShowLabel] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -85,9 +93,8 @@ export function LiquidGlassOverlay() {
     useState<ClaimPeriod | null>(null);
   const [airdropAmount, setAirdropAmount] = useState('');
 
-  // Wallet state
-  const [walletAddress, setWalletAddress] = useState<Address | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+  // Use Farcaster wallet address instead of manual connection
+  const walletAddress = farcasterWalletAddress;
   const [contractLoading, setContractLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -141,63 +148,6 @@ export function LiquidGlassOverlay() {
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Wallet connection function
-  const connectWallet = async () => {
-    if (isConnecting) return;
-
-    try {
-      setIsConnecting(true);
-      setMessage('');
-
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-
-        if (accounts && accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setMessage('Wallet connected successfully!');
-
-          // Try to switch to Base Sepolia
-          try {
-            await (window as any).ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x14a34' }], // Base Sepolia chainId
-            });
-          } catch (switchError: any) {
-            if (switchError.code === 4902) {
-              // Chain not added, add it
-              await (window as any).ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [
-                  {
-                    chainId: '0x14a34',
-                    chainName: 'Base Sepolia',
-                    nativeCurrency: {
-                      name: 'ETH',
-                      symbol: 'ETH',
-                      decimals: 18,
-                    },
-                    rpcUrls: ['https://sepolia.base.org'],
-                    blockExplorerUrls: ['https://sepolia-explorer.base.org'],
-                  },
-                ],
-              });
-            }
-          }
-        }
-      } else {
-        setMessage('Please install MetaMask or another web3 wallet');
-      }
-    } catch (error) {
-      console.error('Wallet connection error:', error);
-      setMessage('Failed to connect wallet');
-    } finally {
-      setIsConnecting(false);
-      setTimeout(() => setMessage(''), 3000);
-    }
-  };
 
   // Contract functions
   const checkAndRegisterCreator = async (
@@ -1366,27 +1316,38 @@ export function LiquidGlassOverlay() {
             )}
           </AnimatePresence>
 
-          {/* Wallet Button */}
+          {/* Wallet/Basename Display */}
           <div className='flex-shrink-0 flex items-center gap-2'>
-            <button
-              className='flex-shrink-0 rounded-full p-2 transition-all duration-300 hover:scale-110'
-              style={{
-                background: walletAddress
-                  ? 'rgba(34, 197, 94, 0.2)'
-                  : 'rgba(255, 255, 255, 0.15)',
-                border: walletAddress
-                  ? '1px solid rgba(34, 197, 94, 0.3)'
-                  : '1px solid rgba(255, 255, 255, 0.2)',
-                width: '36px',
-                height: '36px',
-              }}
-              onClick={connectWallet}
-              disabled={isConnecting}
-            >
-              <Wallet
-                className={`h-4 w-4 ${walletAddress ? 'text-green-400' : 'text-white'}`}
+            {walletAddress && connectedBasename ? (
+              <BasenameDisplay
+                address={walletAddress}
+                className='bg-white/10 rounded-full px-3 py-1'
               />
-            </button>
+            ) : walletAddress ? (
+              <div
+                className='flex-shrink-0 rounded-full p-2'
+                style={{
+                  background: 'rgba(34, 197, 94, 0.2)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  width: '36px',
+                  height: '36px',
+                }}
+              >
+                <Wallet className='h-4 w-4 text-green-400' />
+              </div>
+            ) : (
+              <div
+                className='flex-shrink-0 rounded-full p-2'
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  width: '36px',
+                  height: '36px',
+                }}
+              >
+                <Wallet className='h-4 w-4 text-white/60' />
+              </div>
+            )}
           </div>
         </div>
       </div>

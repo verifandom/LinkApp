@@ -1,15 +1,11 @@
 import { createConfig, http } from 'wagmi'
 import { base, baseSepolia } from 'wagmi/chains'
-import { injected, walletConnect } from 'wagmi/connectors'
-
-// Get projectId from https://cloud.walletconnect.com
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id'
+import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector'
 
 export const config = createConfig({
   chains: [base, baseSepolia],
   connectors: [
-    injected(),
-    walletConnect({ projectId }),
+    farcasterMiniApp(),
   ],
   transports: {
     [base.id]: http(),
