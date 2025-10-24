@@ -11,6 +11,21 @@ const nextConfig: NextConfig = {
         'react-native': false,
       };
     }
+
+    // Exclude native node modules from client-side bundle
+    config.module.rules.push({
+      test: /\.node$/,
+      use: 'ignore-loader',
+    });
+
+    // Ignore koffi native binaries on client-side
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'koffi': false,
+      };
+    }
+
     return config;
   },
 };
