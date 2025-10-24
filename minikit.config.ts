@@ -1,4 +1,4 @@
-export const ROOT_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+export const ROOT_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://link-app-two-tawny.vercel.app';
 
 export const minikitConfig = {
   accountAssociation: {
@@ -12,17 +12,17 @@ export const minikitConfig = {
     subtitle: 'Connect creators with fans',
     description: 'Link enables web2 creators to connect with their fans through zk-TLS proofs and airdrops. Fans can submit proofs to participate in creator airdrops.',
     screenshotUrls: [],
-    iconUrl: `${ROOT_URL}/public/icon.png`,
-    splashImageUrl: `${ROOT_URL}/public/splash.png`,
+    iconUrl: `${ROOT_URL}/icon.png`,
+    splashImageUrl: `${ROOT_URL}/splash.png`,
     splashBackgroundColor: '#000000',
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: 'social' as const,
     tags: ['creator', 'fan', 'airdrop', 'zktls', 'web2'],
-    heroImageUrl: `${ROOT_URL}/public/hero.png`,
+    heroImageUrl: `${ROOT_URL}/hero.png`,
     tagline: 'Bridge web2 creators to web3',
     ogTitle: 'Link - Connect Creators with Fans',
     ogDescription: 'Enable web2 creators to reward their fans through verified proofs and airdrops.',
-    ogImageUrl: `${ROOT_URL}/public/og-image.png`,
+    ogImageUrl: `${ROOT_URL}/og-image.png`,
   }
 } as const;
