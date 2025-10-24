@@ -72,21 +72,6 @@ export default function Home() {
             </WalletDropdown>
           </Wallet>
         </div>
-        
-        {isInMiniApp && (
-          <div className="text-white bg-black/50 backdrop-blur-sm rounded-lg p-3">
-            <div className="text-sm">
-              {user ? (
-                <div>
-                  <p>Welcome, {user.displayName || 'User'}!</p>
-                  <p className="text-xs opacity-75">FID: {user.fid}</p>
-                </div>
-              ) : (
-                <p>Mini App Ready</p>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
