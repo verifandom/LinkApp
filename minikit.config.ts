@@ -21,8 +21,8 @@ export const minikitConfig = {
     tags: ['creator', 'fan', 'airdrop', 'zktls', 'web2'],
     heroImageUrl: `${ROOT_URL}/hero.png`,
     tagline: 'Bridge web2 creators to web3',
-    ogTitle: 'Link - Connect Creators with Fans',
-    ogDescription: 'Enable web2 creators to reward their fans through verified proofs and airdrops.',
+    ogTitle: 'Link',
+    ogDescription: 'Enable web2 creators to reward their fans through verified proofs and airdrops',
     ogImageUrl: `${ROOT_URL}/og-image.png`,
   }
 } as const;
