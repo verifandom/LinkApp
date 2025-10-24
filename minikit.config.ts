@@ -10,7 +10,7 @@ export const minikitConfig = {
     version: '1',
     name: 'Link',
     subtitle: 'Connect creators with fans',
-    description: 'Link enables web2 creators to connect with their fans through zkTLS proofs and airdrops. Fans can submit proofs to participate in creator airdrops.',
+    description: 'Link enables web2 creators to connect with their fans through zkTLS proofs and airdrops',
     screenshotUrls: [`${ROOT_URL}/hero.png`],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
