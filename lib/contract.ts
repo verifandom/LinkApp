@@ -8,10 +8,10 @@ export const publicClient = createPublicClient({
 })
 
 export const getWalletClient = () => {
-  if (typeof window !== 'undefined' && window.ethereum) {
+  if (typeof window !== 'undefined' && (window as any).ethereum) {
     return createWalletClient({
       chain: baseSepolia,
-      transport: custom(window.ethereum)
+      transport: custom((window as any).ethereum)
     })
   }
   return null
