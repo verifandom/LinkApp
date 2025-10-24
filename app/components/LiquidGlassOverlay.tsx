@@ -345,15 +345,6 @@ export function LiquidGlassOverlay() {
           boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}
       >
-        {/* Liquid gradient blobs */}
-        <canvas
-          ref={canvasRef}
-          className='absolute inset-0 w-full h-full'
-          style={{
-            mixBlendMode: 'screen',
-          }}
-        />
-
         {/* Frosted glass with backdrop blur */}
         <div
           className='absolute inset-0'
