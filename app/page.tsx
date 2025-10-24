@@ -3,12 +3,13 @@
 import { HalftoneCloud } from './components/HalftoneCloud';
 import { LiquidGlassOverlay } from './components/LiquidGlassOverlay';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import sdk from '@farcaster/miniapp-sdk';
 
 export default function Home() {
   const [isInMiniApp, setIsInMiniApp] = useState(false);
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
 
   useEffect(() => {
     async function initializeMiniApp() {
@@ -18,6 +19,11 @@ export default function Home() {
 
         if (inMiniApp) {
           await sdk.actions.ready();
+
+          // Auto-connect to Farcaster wallet if in mini app and not already connected
+          if (!isConnected && connectors.length > 0) {
+            connect({ connector: connectors[0] });
+          }
         }
       } catch (error) {
         console.log('Not in mini app context');
@@ -25,7 +31,7 @@ export default function Home() {
     }
 
     initializeMiniApp();
-  }, []);
+  }, [isConnected, connectors, connect]);
 
   return (
     <div className="w-full h-screen overflow-hidden bg-black">
