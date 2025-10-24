@@ -20,6 +20,8 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { linkUtils, getWalletClient } from '@/lib/contract';
+import type { Address } from 'viem';
 
 type UserType = 'creator' | 'fan';
 type ViewType = 'dashboard' | 'creatorProfile' | 'onramp' | 'airdrop';
@@ -74,6 +76,12 @@ export function LiquidGlassOverlay() {
   const [selectedClaimPeriodForAirdrop, setSelectedClaimPeriodForAirdrop] = useState<ClaimPeriod | null>(null);
   const [airdropAmount, setAirdropAmount] = useState('');
   
+  // Wallet state
+  const [walletAddress, setWalletAddress] = useState<Address | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  
   // Mock creators data
   const mockCreators: Creator[] = [
     { id: '1', name: 'Sarah Chen', points: '12.5K', hasActiveClaimPeriod: true, connectedSocials: ['youtube', 'instagram'] },
@@ -93,6 +101,193 @@ export function LiquidGlassOverlay() {
     
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Wallet connection function
+  const connectWallet = async () => {
+    if (isConnecting) return;
+    
+    try {
+      setIsConnecting(true);
+      setMessage('');
+      
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          setMessage('Wallet connected successfully!');
+          
+          // Try to switch to Base Sepolia
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x14a34' }], // Base Sepolia chainId
+            });
+          } catch (switchError: any) {
+            if (switchError.code === 4902) {
+              // Chain not added, add it
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x14a34',
+                  chainName: 'Base Sepolia',
+                  nativeCurrency: {
+                    name: 'ETH',
+                    symbol: 'ETH',
+                    decimals: 18,
+                  },
+                  rpcUrls: ['https://sepolia.base.org'],
+                  blockExplorerUrls: ['https://sepolia-explorer.base.org'],
+                }],
+              });
+            }
+          }
+        }
+      } else {
+        setMessage('Please install MetaMask or another web3 wallet');
+      }
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      setMessage('Failed to connect wallet');
+    } finally {
+      setIsConnecting(false);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
+  // Contract functions
+  const checkAndRegisterCreator = async (channelId: string, tokenAddress: string = '0x0000000000000000000000000000000000000000') => {
+    if (!walletAddress) {
+      setMessage('Please connect your wallet first');
+      return false;
+    }
+
+    try {
+      // Check if creator is already registered
+      const creator = await linkUtils.getCreator(channelId);
+      if (creator.registered) {
+        return true;
+      }
+
+      // If not registered, register first
+      setMessage('Registering as creator...');
+      
+      // Mock proof structure for demonstration
+      // In production, this would come from Reclaim protocol
+      const mockProof = {
+        claimInfo: {
+          identifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          owner: walletAddress,
+          timestampS: Math.floor(Date.now() / 1000),
+          epoch: 1
+        },
+        signedClaim: {
+          claim: {
+            identifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            owner: walletAddress,
+            timestampS: Math.floor(Date.now() / 1000),
+            epoch: 1
+          },
+          signatures: ['0x']
+        }
+      };
+
+      const registerHash = await linkUtils.registerCreator(channelId, tokenAddress, mockProof);
+      setMessage('Creator registered successfully!');
+      console.log('Registration hash:', registerHash);
+      return true;
+      
+    } catch (error) {
+      console.error('Error registering creator:', error);
+      setMessage('Failed to register creator - you may need a valid Reclaim proof');
+      return false;
+    }
+  };
+
+  const createClaimPeriod = async (channelId: string) => {
+    if (!walletAddress) {
+      setMessage('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      setContractLoading(true);
+      setMessage('Checking creator registration...');
+      
+      // Check/register creator first
+      const isRegistered = await checkAndRegisterCreator(channelId);
+      if (!isRegistered) {
+        return;
+      }
+
+      setMessage('Creating claim period...');
+      
+      const now = Math.floor(Date.now() / 1000);
+      const endTime = now + (7 * 24 * 60 * 60); // 7 days from now
+      
+      const hash = await linkUtils.openClaimPeriod(
+        channelId,
+        BigInt(now),
+        BigInt(endTime)
+      );
+      
+      setMessage('Claim period created successfully!');
+      console.log('Transaction hash:', hash);
+      
+      // Update local state
+      const newPeriod: ClaimPeriod = {
+        id: Date.now().toString(),
+        creatorName: 'You',
+        startDate: new Date(),
+        endDate: null,
+        isActive: true,
+        proofsCount: 0
+      };
+      setClaimPeriods([...claimPeriods, newPeriod]);
+      
+    } catch (error) {
+      console.error('Error creating claim period:', error);
+      setMessage('Failed to create claim period');
+    } finally {
+      setContractLoading(false);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
+  const executeAirdrop = async (claimPeriodId: string, amount: string) => {
+    if (!walletAddress) {
+      setMessage('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      setContractLoading(true);
+      setMessage('Executing airdrop...');
+      
+      // Convert amount to wei (assuming amount is in ETH)
+      const amountInWei = BigInt(Math.floor(parseFloat(amount) * 1e18));
+      
+      const hash = await linkUtils.airdrop(
+        BigInt(claimPeriodId),
+        amountInWei
+      );
+      
+      setMessage('Airdrop executed successfully!');
+      console.log('Transaction hash:', hash);
+      
+      // Update balance
+      setBalance(balance - parseFloat(amount));
+      
+    } catch (error) {
+      console.error('Error executing airdrop:', error);
+      setMessage('Failed to execute airdrop');
+    } finally {
+      setContractLoading(false);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -233,6 +428,21 @@ export function LiquidGlassOverlay() {
         {/* Main Content */}
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-start py-8 px-12 overflow-y-auto">
           <div className="w-full max-w-md">{/* Wrapper for centering */}
+          
+          {/* Status Message */}
+          {message && (
+            <div 
+              className="mb-4 p-3 rounded-xl text-center text-sm"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(30px)',
+                WebkitBackdropFilter: 'blur(30px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <span className="text-white">{message}</span>
+            </div>
+          )}
           {userType === 'fan' ? (
             <>
               {currentView === 'dashboard' && (
@@ -536,21 +746,16 @@ export function LiquidGlassOverlay() {
                   {(connectedAccounts.youtube || connectedAccounts.instagram || connectedAccounts.twitter) && (
                     <Button
                       onClick={() => {
-                        const newPeriod: ClaimPeriod = {
-                          id: Date.now().toString(),
-                          creatorName: 'You',
-                          startDate: new Date(),
-                          endDate: null,
-                          isActive: true,
-                          proofsCount: 0
-                        };
-                        setClaimPeriods([...claimPeriods, newPeriod]);
-                        alert('Claim period created!');
+                        // Use connected social as channel ID
+                        const channelId = connectedAccounts.youtube ? 'youtube_channel' : 
+                                        connectedAccounts.instagram ? 'instagram_channel' : 
+                                        'twitter_channel';
+                        createClaimPeriod(channelId);
                       }}
-                      disabled={claimPeriods.some(p => p.isActive)}
+                      disabled={claimPeriods.some(p => p.isActive) || contractLoading || !walletAddress}
                       className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
                       style={{
-                        background: claimPeriods.some(p => p.isActive) 
+                        background: claimPeriods.some(p => p.isActive) || !walletAddress
                           ? 'rgba(255, 255, 255, 0.05)' 
                           : 'rgba(34, 197, 94, 0.2)',
                         border: '1px solid rgba(34, 197, 94, 0.3)',
@@ -558,7 +763,9 @@ export function LiquidGlassOverlay() {
                     >
                       <Plus className="h-5 w-5 mr-2 text-white" />
                       <span className="text-white font-[Satoshi]">
-                        {claimPeriods.some(p => p.isActive) ? 'Period Already Active' : 'Create Claim Period'}
+                        {!walletAddress ? 'Connect Wallet First' :
+                         claimPeriods.some(p => p.isActive) ? 'Period Already Active' : 
+                         contractLoading ? 'Creating...' : 'Create Claim Period'}
                       </span>
                     </Button>
                   )}
@@ -776,27 +983,33 @@ export function LiquidGlassOverlay() {
                     )}
 
                     <Button
-                      onClick={() => {
-                        if (parseFloat(airdropAmount) <= balance) {
-                          setBalance(balance - parseFloat(airdropAmount));
+                      onClick={async () => {
+                        if (!walletAddress) {
+                          setMessage('Please connect your wallet first');
+                          return;
+                        }
+                        if (parseFloat(airdropAmount) <= balance && selectedClaimPeriodForAirdrop) {
+                          await executeAirdrop(selectedClaimPeriodForAirdrop.id, airdropAmount);
                           setCurrentView('dashboard');
                           setAirdropAmount('');
                           setSelectedClaimPeriodForAirdrop(null);
-                          alert(`Airdrop of ${airdropAmount} distributed successfully!`);
                         } else {
-                          alert('Insufficient balance!');
+                          setMessage('Insufficient balance!');
                         }
                       }}
-                      disabled={!airdropAmount || parseFloat(airdropAmount) <= 0 || parseFloat(airdropAmount) > balance}
+                      disabled={!airdropAmount || parseFloat(airdropAmount) <= 0 || parseFloat(airdropAmount) > balance || contractLoading || !walletAddress}
                       className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
                       style={{
-                        background: airdropAmount && parseFloat(airdropAmount) > 0 && parseFloat(airdropAmount) <= balance
+                        background: airdropAmount && parseFloat(airdropAmount) > 0 && parseFloat(airdropAmount) <= balance && walletAddress
                           ? 'rgba(34, 197, 94, 0.2)'
                           : 'rgba(255, 255, 255, 0.05)',
                         border: '1px solid rgba(34, 197, 94, 0.3)',
                       }}
                     >
-                      <span className="text-white font-[Satoshi]">Distribute Airdrop</span>
+                      <span className="text-white font-[Satoshi]">
+                        {!walletAddress ? 'Connect Wallet First' :
+                         contractLoading ? 'Executing...' : 'Distribute Airdrop'}
+                      </span>
                     </Button>
                   </div>
                 </div>
@@ -882,14 +1095,15 @@ export function LiquidGlassOverlay() {
             <button
               className="flex-shrink-0 rounded-full p-2 transition-all duration-300 hover:scale-110"
               style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: walletAddress ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.15)',
+                border: walletAddress ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
                 width: '36px',
                 height: '36px',
               }}
-              onClick={() => console.log('Connect clicked')}
+              onClick={connectWallet}
+              disabled={isConnecting}
             >
-              <Wallet className="h-4 w-4 text-white" />
+              <Wallet className={`h-4 w-4 ${walletAddress ? 'text-green-400' : 'text-white'}`} />
             </button>
           </div>
         </div>
