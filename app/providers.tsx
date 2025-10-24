@@ -23,6 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             wallet: {
               display: 'modal',
             },
+            analytics: {
+              enabled: false,
+            },
           }}
         >
           {children}
