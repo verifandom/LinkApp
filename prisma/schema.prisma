@@ -16,6 +16,7 @@ model Creator {
   walletAddress String  @unique @db.VarChar(42) // Ethereum address
   channelId     String  @unique @db.VarChar(255) // YouTube channel ID
   channelName   String  @db.VarChar(255)
+  reclaimProof  String? @db.Text // Reclaim proof JSON for on-chain registration
   registeredAt  DateTime @default(now())
 
   // Relations

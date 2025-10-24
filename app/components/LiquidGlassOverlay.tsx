@@ -101,6 +101,7 @@ export function LiquidGlassOverlay({
   const [contractLoading, setContractLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [ethPriceUSD, setEthPriceUSD] = useState<number>(0);
+  const [youtubeChannelId, setYoutubeChannelId] = useState<string>('');
 
   // Use wagmi hook to get balance
   const { data: balanceData } = useBalance({
@@ -170,6 +171,10 @@ export function LiquidGlassOverlay({
     // Check if YouTube was previously connected
     if (sessionStorage.getItem('youtube-connected') === 'true') {
       setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+      const savedChannelId = sessionStorage.getItem('youtube-channel-id');
+      if (savedChannelId) {
+        setYoutubeChannelId(savedChannelId);
+      }
       return;
     }
 
@@ -211,7 +216,9 @@ export function LiquidGlassOverlay({
           if (proofData.success) {
             setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
             sessionStorage.setItem('youtube-connected', 'true');
+            sessionStorage.setItem('youtube-channel-id', data.channelId);
             sessionStorage.removeItem('youtube-auth-wallet');
+            setYoutubeChannelId(data.channelId);
             setMessage('YouTube verified with Reclaim!');
           } else {
             setMessage('Failed to verify YouTube');
@@ -282,34 +289,26 @@ export function LiquidGlassOverlay({
       }
 
       // If not registered, register first
-      setMessage('Registering as creator...');
+      setMessage('Fetching Reclaim proof...');
 
-      // Mock proof structure for demonstration
-      // In production, this would come from Reclaim protocol
-      const mockProof = {
-        claimInfo: {
-          identifier:
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
-          owner: walletAddress,
-          timestampS: Math.floor(Date.now() / 1000),
-          epoch: 1,
-        },
-        signedClaim: {
-          claim: {
-            identifier:
-              '0x0000000000000000000000000000000000000000000000000000000000000000',
-            owner: walletAddress,
-            timestampS: Math.floor(Date.now() / 1000),
-            epoch: 1,
-          },
-          signatures: ['0x'],
-        },
-      };
+      // Fetch the real Reclaim proof from database
+      const creatorResponse = await fetch(`/api/creator/${walletAddress}`);
+      if (!creatorResponse.ok) {
+        throw new Error('Creator not found. Please connect YouTube first.');
+      }
+
+      const creatorData = await creatorResponse.json();
+      if (!creatorData.reclaimProof) {
+        throw new Error('No Reclaim proof found. Please reconnect YouTube.');
+      }
+
+      const reclaimProof = JSON.parse(creatorData.reclaimProof);
+      setMessage('Registering as creator...');
 
       const registerHash = await linkUtils.registerCreator(
         channelId,
         tokenAddress as `0x${string}`,
-        mockProof
+        reclaimProof
       );
       setMessage('Creator registered successfully!');
       console.log('Registration hash:', registerHash);

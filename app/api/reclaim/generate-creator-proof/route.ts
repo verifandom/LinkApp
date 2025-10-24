@@ -5,6 +5,7 @@ import {
   verifyReclaimProof,
   transformProofForOnchain,
 } from '@/lib/reclaim/client';
+import { createCreator } from '@/lib/db';
 
 /**
  * POST /api/reclaim/generate-creator-proof
@@ -58,6 +59,20 @@ export async function POST(request: NextRequest) {
       const proof = await generateCreatorProof(accessToken, channelId);
 
       const onchainProof = transformProofForOnchain(proof);
+
+      // Store creator and proof in database
+      try {
+        await createCreator(
+          userAddress,
+          channelId,
+          channelName || '',
+          JSON.stringify(onchainProof)
+        );
+        console.log('Creator and proof stored in database');
+      } catch (dbError) {
+        console.error('Error storing creator in database:', dbError);
+        // Continue even if DB storage fails
+      }
 
       return NextResponse.json(
         {

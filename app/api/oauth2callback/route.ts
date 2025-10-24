@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
               // Auto-close or redirect after showing success message
               setTimeout(() => {
                 returnToFarcaster();
-              }, 3000);
+              }, 1500);
             </script>
           </body>
         </html>

@@ -28,16 +28,20 @@ export { prisma };
 export async function createCreator(
   walletAddress: string,
   channelId: string,
-  channelName: string
+  channelName: string,
+  reclaimProof?: string
 ) {
   try {
     const creator = await prisma.creator.upsert({
       where: { walletAddress: walletAddress.toLowerCase() },
-      update: {},
+      update: {
+        reclaimProof: reclaimProof || undefined,
+      },
       create: {
         walletAddress: walletAddress.toLowerCase(),
         channelId,
         channelName,
+        reclaimProof,
       },
     });
     return creator;
