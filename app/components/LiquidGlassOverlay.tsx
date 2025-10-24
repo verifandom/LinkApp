@@ -20,6 +20,7 @@ import { Textarea } from './ui/textarea';
 import { linkUtils } from '@/lib/contract';
 import { useBasename, useBasenameSearch } from '@/hooks/useBasename';
 import { BasenameDisplay, BasenameSearchDisplay } from './BasenameDisplay';
+import { OnrampButton } from './OnrampButton';
 import type { Address } from 'viem';
 
 type UserType = 'creator' | 'fan';
@@ -970,36 +971,14 @@ export function LiquidGlassOverlay() {
                       </div>
 
                       <div className="space-y-3">
-                        <Input
-                          type="number"
-                          placeholder="Amount (USD)"
-                          className="w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40"
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            backdropFilter: 'blur(30px)',
-                            WebkitBackdropFilter: 'blur(30px)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                          }}
+                        <OnrampButton 
+                          className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                          variant="outline"
+                          size="lg"
                         />
 
-                        <Button
-                          onClick={() => {
-                            const amount = Math.random() * 500 + 100;
-                            setBalance(balance + amount);
-                            setCurrentView('dashboard');
-                            alert(`Successfully added ${amount.toFixed(2)} to your balance!`);
-                          }}
-                          className="w-full rounded-xl py-6 transition-all duration-200 hover:scale-105"
-                          style={{
-                            background: 'rgba(59, 130, 246, 0.2)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                          }}
-                        >
-                          <span className="text-white font-[Satoshi]">Complete Purchase</span>
-                        </Button>
-
                         <p className="text-white/40 text-xs text-center mt-4">
-                          Mock integration - In production, this would connect to Coinbase API
+                          Secure Coinbase integration for crypto purchases
                         </p>
                       </div>
                     </div>

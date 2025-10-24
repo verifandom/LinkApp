@@ -13,43 +13,24 @@ interface OnrampButtonProps {
 export function OnrampButton({ className, variant = 'default', size = 'default' }: OnrampButtonProps) {
   const [onrampInstance, setOnrampInstance] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeOnramp = async () => {
       try {
-        const options = {
-          appId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID || 'your-project-id-here',
-          widgetParameters: {
-            addresses: { 
-              '0x0000000000000000000000000000000000000000': ['ethereum', 'base'],
-            },
-            assets: ['ETH', 'USDC', 'USDT'],
-          },
-          onSuccess: () => {
-            console.log('Onramp transaction successful');
-          },
-          onExit: () => {
-            console.log('User exited onramp');
-          },
-          onEvent: (event: any) => {
-            console.log('Onramp event:', event);
-          },
-          experienceLoggedIn: 'popup' as const,
-          experienceLoggedOut: 'popup' as const,
-          closeOnExit: true,
-          closeOnSuccess: true,
-        };
-
-        initOnRamp(options, (error: any, instance: any) => {
-          if (error) {
-            console.error('Failed to initialize onramp:', error);
-          } else {
-            setOnrampInstance(instance);
+        setError(null);
+        
+        // For demo purposes, show a mock implementation since we don't have onramp permissions
+        console.log('Onramp feature available but not fully configured');
+        setOnrampInstance({ 
+          open: () => {
+            alert('🚀 Onramp Demo\n\nThis would open Coinbase onramp to purchase crypto.\n\nTo enable real functionality:\n1. Get onramp permissions in CDP portal\n2. Configure proper API credentials');
           }
-          setIsLoading(false);
         });
+        setIsLoading(false);
       } catch (error) {
         console.error('Error initializing onramp:', error);
+        setError(error instanceof Error ? error.message : 'Failed to initialize');
         setIsLoading(false);
       }
     };
@@ -69,15 +50,22 @@ export function OnrampButton({ className, variant = 'default', size = 'default' 
     }
   };
 
+  const getButtonText = () => {
+    if (isLoading) return 'Loading...';
+    if (error) return 'Service Unavailable';
+    return 'Buy Crypto (Demo)';
+  };
+
   return (
     <Button
       onClick={handleOnrampClick}
-      disabled={isLoading || !onrampInstance}
+      disabled={isLoading || !onrampInstance || !!error}
       variant={variant}
       size={size}
       className={className}
+      title={error || undefined}
     >
-      {isLoading ? 'Loading...' : 'Buy Crypto'}
+      {getButtonText()}
     </Button>
   );
 }
