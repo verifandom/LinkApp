@@ -825,12 +825,79 @@ export function LiquidGlassOverlay({
 
                       <div className='space-y-3'>
                         <button
-                          onClick={() =>
-                            setConnectedAccounts((prev) => ({
-                              ...prev,
-                              youtube: !prev.youtube,
-                            }))
-                          }
+                          onClick={async () => {
+                            if (!walletAddress) {
+                              setMessage('Please connect your wallet first');
+                              setTimeout(() => setMessage(''), 3000);
+                              return;
+                            }
+
+                            if (connectedAccounts.youtube) {
+                              return;
+                            }
+
+                            try {
+                              setMessage('Opening YouTube OAuth...');
+
+                              const authResponse = await fetch('/api/auth/youtube?type=creator');
+                              const { authUrl } = await authResponse.json();
+
+                              const width = 600;
+                              const height = 700;
+                              const left = window.screen.width / 2 - width / 2;
+                              const top = window.screen.height / 2 - height / 2;
+
+                              const authWindow = window.open(
+                                authUrl,
+                                'YouTube OAuth',
+                                `width=${width},height=${height},left=${left},top=${top}`
+                              );
+
+                              const handleMessage = async (event: MessageEvent) => {
+                                if (event.data.type === 'youtube-auth-success') {
+                                  authWindow?.close();
+                                  const { accessToken, channelId, channelName } = event.data;
+
+                                  setMessage('Generating Reclaim proof...');
+
+                                  try {
+                                    const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        accessToken,
+                                        userAddress: walletAddress,
+                                        channelId,
+                                        channelName,
+                                      }),
+                                    });
+
+                                    const proofData = await proofResponse.json();
+
+                                    if (proofData.success) {
+                                      setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+                                      setMessage('YouTube verified with Reclaim!');
+                                    } else {
+                                      setMessage('Failed to verify YouTube');
+                                    }
+                                  } catch (error) {
+                                    console.error('Reclaim proof error:', error);
+                                    setMessage('Failed to generate proof');
+                                  }
+
+                                  setTimeout(() => setMessage(''), 3000);
+                                  window.removeEventListener('message', handleMessage);
+                                }
+                              };
+
+                              window.addEventListener('message', handleMessage);
+                            } catch (error) {
+                              console.error('YouTube OAuth error:', error);
+                              setMessage('Failed to initiate OAuth');
+                              setTimeout(() => setMessage(''), 3000);
+                            }
+                          }}
+                          disabled={contractLoading || !walletAddress}
                           className='w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105'
                           style={{
                             background: connectedAccounts.youtube

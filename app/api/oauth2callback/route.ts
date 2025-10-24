@@ -44,26 +44,79 @@ export async function GET(request: NextRequest) {
     // Exchange authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
 
-    // Generate session ID
-    const sessionId = uuidv4();
+    if (!tokens.access_token) {
+      throw new Error('No access token received');
+    }
 
-    // Store session
-    sessionStore.set(sessionId, {
-      tokens: {
-        access_token: tokens.access_token || '',
-        refresh_token: tokens.refresh_token || '',
-        expiry_date: tokens.expiry_date || undefined,
-      },
-      type: state,
-      createdAt: Date.now(),
+    // Get YouTube channel info
+    oauth2Client.setCredentials(tokens);
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    const channelResponse = await youtube.channels.list({
+      part: ['snippet', 'statistics'],
+      mine: true,
     });
 
-    // Redirect to frontend with session ID
-    const redirectUrl = new URL('/', process.env.NEXT_PUBLIC_API_URL);
-    redirectUrl.searchParams.set('sessionId', sessionId);
-    redirectUrl.searchParams.set('type', state);
+    const channel = channelResponse.data.items?.[0];
+    if (!channel) {
+      throw new Error('No YouTube channel found');
+    }
 
-    return NextResponse.redirect(redirectUrl);
+    const channelId = channel.id || '';
+    const channelName = channel.snippet?.title || '';
+
+    // Return HTML that sends message to opener window
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Authentication Successful</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .container {
+              text-align: center;
+              padding: 2rem;
+            }
+            .checkmark {
+              font-size: 4rem;
+              margin-bottom: 1rem;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="checkmark">✓</div>
+            <h1>YouTube Connected!</h1>
+            <p>You can close this window</p>
+          </div>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'youtube-auth-success',
+                accessToken: '${tokens.access_token}',
+                channelId: '${channelId}',
+                channelName: '${channelName}'
+              }, '*');
+            }
+            setTimeout(() => window.close(), 2000);
+          </script>
+        </body>
+      </html>
+    `;
+
+    return new NextResponse(html, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+    });
   } catch (error) {
     console.error('Error in OAuth callback:', error);
     return NextResponse.redirect(
