@@ -897,7 +897,7 @@ export function LiquidGlassOverlay({
                               setTimeout(() => setMessage(''), 3000);
                             }
                           }}
-                          disabled={contractLoading || !walletAddress}
+                          disabled={!mounted || contractLoading || !walletAddress}
                           className='w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105'
                           style={{
                             background: connectedAccounts.youtube
@@ -1435,12 +1435,12 @@ export function LiquidGlassOverlay({
 
           {/* Wallet/Basename Display */}
           <div className='flex-shrink-0 flex items-center gap-2'>
-            {walletAddress && connectedBasename ? (
+            {mounted && walletAddress && connectedBasename ? (
               <BasenameDisplay
                 address={walletAddress}
                 className='bg-white/10 rounded-full px-3 py-1'
               />
-            ) : walletAddress ? (
+            ) : mounted && walletAddress ? (
               <div
                 className='flex-shrink-0 rounded-full p-2'
                 style={{
