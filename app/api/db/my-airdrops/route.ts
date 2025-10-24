@@ -19,10 +19,21 @@ export async function GET(request: NextRequest) {
 
     const proofs = await getSubscriberProofs(address);
 
+    // Serialize BigInt fields to strings for JSON response
+    const serializedProofs = proofs.map((proof) => ({
+      ...proof,
+      claimPeriod: {
+        ...proof.claimPeriod,
+        startTime: proof.claimPeriod.startTime.toString(),
+        endTime: proof.claimPeriod.endTime.toString(),
+        claimPeriodId: proof.claimPeriod.claimPeriodId.toString(),
+      },
+    }));
+
     return NextResponse.json(
       {
         success: true,
-        airdrops: proofs,
+        airdrops: serializedProofs,
       },
       { status: 200 }
     );

@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
     sessionStore.set(sessionId, {
       tokens: {
         access_token: tokens.access_token || '',
-        refresh_token: tokens.refresh_token,
-        expiry_date: tokens.expiry_date,
+        refresh_token: tokens.refresh_token || '',
+        expiry_date: tokens.expiry_date || undefined,
       },
       type: state,
       createdAt: Date.now(),

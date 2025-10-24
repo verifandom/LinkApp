@@ -37,11 +37,19 @@ export async function POST(request: NextRequest) {
       true // is_open = true when created
     );
 
+    // Serialize BigInt fields to strings for JSON response
+    const serializedClaimPeriod = {
+      ...claimPeriod,
+      startTime: claimPeriod.startTime.toString(),
+      endTime: claimPeriod.endTime.toString(),
+      claimPeriodId: claimPeriod.claimPeriodId.toString(),
+    };
+
     return NextResponse.json(
       {
         success: true,
         message: 'Claim period synced successfully',
-        claimPeriod,
+        claimPeriod: serializedClaimPeriod,
       },
       { status: 200 }
     );
