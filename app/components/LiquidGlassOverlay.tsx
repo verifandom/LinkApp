@@ -110,8 +110,8 @@ export function LiquidGlassOverlay() {
       setIsConnecting(true);
       setMessage('');
       
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const accounts = await window.ethereum.request({ 
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const accounts = await (window as any).ethereum.request({ 
           method: 'eth_requestAccounts' 
         });
         
@@ -121,14 +121,14 @@ export function LiquidGlassOverlay() {
           
           // Try to switch to Base Sepolia
           try {
-            await window.ethereum.request({
+            await (window as any).ethereum.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: '0x14a34' }], // Base Sepolia chainId
             });
           } catch (switchError: any) {
             if (switchError.code === 4902) {
               // Chain not added, add it
-              await window.ethereum.request({
+              await (window as any).ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
                   chainId: '0x14a34',
@@ -194,7 +194,7 @@ export function LiquidGlassOverlay() {
         }
       };
 
-      const registerHash = await linkUtils.registerCreator(channelId, tokenAddress, mockProof);
+      const registerHash = await linkUtils.registerCreator(channelId, tokenAddress as `0x${string}`, mockProof);
       setMessage('Creator registered successfully!');
       console.log('Registration hash:', registerHash);
       return true;
