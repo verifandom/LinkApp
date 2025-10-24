@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Creators table - tracks registered creators
+model Creator {
+  id            Int     @id @default(autoincrement())
+  walletAddress String  @unique @db.VarChar(42) // Ethereum address
+  channelId     String  @unique @db.VarChar(255) // YouTube channel ID
+  channelName   String  @db.VarChar(255)
+  registeredAt  DateTime @default(now())
+
+  // Relations
+  claimPeriods      ClaimPeriod[]
+  subscriberProofs  SubscriberProof[]
+  airdrops          Airdrop[]
+
+  @@map("creators")
+}
+
+// Claim Periods table - tracks open/closed periods for each creator
+model ClaimPeriod {
+  id              Int     @id @default(autoincrement())
+  creatorId       Int
+  channelId       String  @db.VarChar(255)
+  claimPeriodId   BigInt  @unique // From smart contract
+  startTime       BigInt  // Unix timestamp
+  endTime         BigInt  // Unix timestamp
+  isOpen          Boolean
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  creator           Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriberProofs  SubscriberProof[]
+  airdrops          Airdrop[]
+
+  @@map("claim_periods")
+}
+
+// Subscriber Proofs table - tracks which subscribers are participating in airdrops
+model SubscriberProof {
+  id                Int     @id @default(autoincrement())
+  subscriberAddress String  @db.VarChar(42) // Ethereum address
+  claimPeriodId     Int
+  creatorId         Int
+  proofSubmittedAt  DateTime
+  status            String  @default("verified") @db.VarChar(20) // 'pending', 'verified', 'rejected'
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  claimPeriod ClaimPeriod @relation(fields: [claimPeriodId], references: [id], onDelete: Cascade)
+  creator     Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Unique constraint - prevent duplicate proofs per user per period
+  @@unique([subscriberAddress, claimPeriodId])
+  @@map("subscriber_proofs")
+}
+
+// Airdrops table - tracks airdrop amounts and distribution
+model Airdrop {
+  id                Int     @id @default(autoincrement())
+  claimPeriodId     Int     @unique
+  creatorId         Int
+  totalTokenAmount  BigInt  // In wei format
+  subscriberCount   Int     @default(0)
+  amountPerUser     BigInt? // Calculated per user
+  executedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  claimPeriod ClaimPeriod @relation(fields: [claimPeriodId], references: [id], onDelete: Cascade)
+  creator     Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("airdrops")
+}

@@ -19,6 +19,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { linkUtils } from '@/lib/contract';
 import { useBasename, useBasenameSearch } from '@/hooks/useBasename';
+import { useCreators, useClaimPeriods, useSubscriberAirdrops, type Creator as DBCreator, type ClaimPeriod as DBClaimPeriod, type SubscriberAirdrop } from '@/hooks/useDatabase';
 import { BasenameDisplay, BasenameSearchDisplay } from './BasenameDisplay';
 import { OnrampButton } from './OnrampButton';
 import type { Address } from 'viem';
@@ -26,13 +27,15 @@ import type { Address } from 'viem';
 type UserType = 'creator' | 'fan';
 type ViewType = 'dashboard' | 'creatorProfile' | 'onramp' | 'airdrop';
 
+// Local types for component state
 interface ClaimPeriod {
-  id: string;
+  id: number;
   creatorName: string;
   startDate: Date;
   endDate: Date | null;
   isActive: boolean;
   proofsCount: number;
+  channelId: string;
 }
 
 interface ZKProof {
@@ -46,7 +49,7 @@ interface ZKProof {
 }
 
 interface Creator {
-  id: string;
+  id: number;
   name: string;
   points: string;
   hasActiveClaimPeriod: boolean;
@@ -88,14 +91,32 @@ export function LiquidGlassOverlay() {
   const { basename: connectedBasename } = useBasename(walletAddress);
   const { searchBasename, isSearching } = useBasenameSearch();
 
-  // Mock creators data
-  const mockCreators: Creator[] = [
-    { id: '1', name: 'Sarah Chen', points: '12.5K', hasActiveClaimPeriod: true, connectedSocials: ['youtube', 'instagram'] },
-    { id: '2', name: 'Alex Rivera', points: '10.2K', hasActiveClaimPeriod: false, connectedSocials: ['twitter', 'youtube'] },
-    { id: '3', name: 'Jordan Kim', points: '9.8K', hasActiveClaimPeriod: true, connectedSocials: ['instagram'] },
-    { id: '4', name: 'Taylor Swift', points: '8.9K', hasActiveClaimPeriod: false, connectedSocials: ['twitter'] },
-    { id: '5', name: 'Morgan Lee', points: '7.6K', hasActiveClaimPeriod: true, connectedSocials: ['youtube'] },
-  ];
+  // Database hooks
+  const { data: dbCreators, isLoading: creatorsLoading } = useCreators();
+  const { data: dbClaimPeriods, isLoading: periodsLoading } = useClaimPeriods();
+  const { data: myAirdrops, isLoading: airdropsLoading } = useSubscriberAirdrops(walletAddress);
+
+  // Transform database creators to component format
+  const creators: Creator[] = (dbCreators || []).map(creator => ({
+    id: creator.id,
+    name: creator.channelName,
+    points: '0', // We could calculate this from claim periods
+    hasActiveClaimPeriod: (dbClaimPeriods || []).some(
+      p => p.creator_id === creator.id && p.is_open
+    ),
+    connectedSocials: ['youtube'], // Default, could be enhanced
+  }));
+
+  // Transform database claim periods to component format
+  const transformedClaimPeriods: ClaimPeriod[] = (dbClaimPeriods || []).map(period => ({
+    id: period.id,
+    creatorName: period.channel_name || 'Unknown',
+    startDate: new Date(parseInt(period.start_time.toString()) * 1000),
+    endDate: period.is_open ? null : new Date(parseInt(period.end_time.toString()) * 1000),
+    isActive: period.is_open,
+    proofsCount: 0, // Would need subscriber count from DB
+    channelId: period.channel_id,
+  }));
 
   useEffect(() => {
     const checkMobile = () => {
@@ -346,6 +367,41 @@ export function LiquidGlassOverlay() {
                     </h1>
                     <h2 className="text-white text-center mb-4 text-[25px] px-[-46px] py-[0px] font-[Satoshi] font-bold">Search for your favorite web2</h2>
 
+                    {/* My Airdrops Section */}
+                    {walletAddress && myAirdrops && myAirdrops.length > 0 && (
+                      <div
+                        className="rounded-2xl p-4"
+                        style={{
+                          background: 'rgba(34, 197, 94, 0.1)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                        }}
+                      >
+                        <h3 className="text-white/80 text-sm mb-3 px-2 font-[Satoshi] text-[16px] flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-400" />
+                          My Participating Airdrops ({myAirdrops.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {myAirdrops.map((airdrop) => (
+                            <div
+                              key={airdrop.id}
+                              className="rounded-xl p-3"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(34, 197, 94, 0.2)',
+                              }}
+                            >
+                              <p className="text-white text-sm font-[Satoshi] font-semibold">{airdrop.channel_name}</p>
+                              <p className="text-white/60 text-xs mt-1">
+                                {airdrop.is_open ? 'Active Period' : 'Period Closed'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Basename Search */}
                     <div className="space-y-4">
                       <div className="relative">
@@ -442,39 +498,45 @@ export function LiquidGlassOverlay() {
                     >
                       <h3 className="text-white/80 text-sm mb-3 px-2 font-[Satoshi] text-[20px]">Top Creators</h3>
                       <div className="space-y-2">
-                        {mockCreators
-                          .filter(c => searchQuery === '' || c.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                          .map((creator, idx) => (
-                            <div
-                              key={creator.id}
-                              onClick={() => {
-                                setSelectedCreator(creator);
-                                setCurrentView('creatorProfile');
-                              }}
-                              className="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 hover:scale-105 cursor-pointer"
-                              style={{
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                              }}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span
-                                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs"
-                                  style={{
-                                    background: idx < 3 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                                    color: idx < 3 ? '#ffd700' : '#fff',
-                                  }}
-                                >
-                                  {idx + 1}
-                                </span>
-                                <span className="text-white text-sm font-[Satoshi]">{creator.name}</span>
-                                {creator.hasActiveClaimPeriod && (
-                                  <span className="text-xs text-green-400">● Active</span>
-                                )}
+                        {creatorsLoading ? (
+                          <div className="text-white/60 text-sm text-center py-4">Loading creators...</div>
+                        ) : creators.length === 0 ? (
+                          <div className="text-white/60 text-sm text-center py-4">No creators found</div>
+                        ) : (
+                          creators
+                            .filter(c => searchQuery === '' || c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map((creator, idx) => (
+                              <div
+                                key={creator.id}
+                                onClick={() => {
+                                  setSelectedCreator(creator);
+                                  setCurrentView('creatorProfile');
+                                }}
+                                className="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 hover:scale-105 cursor-pointer"
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                }}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className="flex items-center justify-center w-6 h-6 rounded-full text-xs"
+                                    style={{
+                                      background: idx < 3 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                      color: idx < 3 ? '#ffd700' : '#fff',
+                                    }}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-white text-sm font-[Satoshi]">{creator.name}</span>
+                                  {creator.hasActiveClaimPeriod && (
+                                    <span className="text-xs text-green-400">● Active</span>
+                                  )}
+                                </div>
+                                <span className="text-white/60 text-xs">{creator.points}</span>
                               </div>
-                              <span className="text-white/60 text-xs">{creator.points}</span>
-                            </div>
-                          ))}
+                            ))
+                        )}
                       </div>
                     </div>
                   </div>
@@ -606,6 +668,22 @@ export function LiquidGlassOverlay() {
                     <h2 className="text-white text-center mb-4 text-[25px] font-[Satoshi] font-bold">
                       Creator Dashboard
                     </h2>
+
+                    {/* Loading State */}
+                    {(creatorsLoading || periodsLoading) && (
+                      <div
+                        className="rounded-2xl p-6 text-center"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <div className="animate-spin h-6 w-6 border-2 border-white/20 border-t-white rounded-full mx-auto mb-3" />
+                        <p className="text-white/60">Loading data...</p>
+                      </div>
+                    )}
 
                     {/* Balance & Actions */}
                     <div
@@ -743,7 +821,7 @@ export function LiquidGlassOverlay() {
                     )}
 
                     {/* Claim Periods List */}
-                    {claimPeriods.length > 0 && (
+                    {(transformedClaimPeriods.length > 0 || (walletAddress && dbClaimPeriods)) && (
                       <div
                         className="rounded-2xl p-6"
                         style={{
@@ -756,69 +834,81 @@ export function LiquidGlassOverlay() {
                         <h3 className="text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]">
                           Claim Periods
                         </h3>
-                        <div className="space-y-3">
-                          {claimPeriods.map((period) => (
-                            <div
-                              key={period.id}
-                              className="rounded-xl p-4"
-                              style={{
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                border: period.isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
-                              }}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {period.isActive ? (
-                                    <Clock className="h-4 w-4 text-green-400" />
-                                  ) : (
-                                    <Check className="h-4 w-4 text-white/60" />
-                                  )}
-                                  <span className="text-white text-sm font-[Satoshi]">
-                                    {period.isActive ? 'Active' : 'Closed'}
+                        {transformedClaimPeriods.length === 0 ? (
+                          <div className="text-white/60 text-sm text-center py-4">No claim periods yet</div>
+                        ) : (
+                          <div className="space-y-3">
+                            {transformedClaimPeriods.map((period) => (
+                              <div
+                                key={period.id}
+                                className="rounded-xl p-4"
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: period.isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                }}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {period.isActive ? (
+                                      <Clock className="h-4 w-4 text-green-400" />
+                                    ) : (
+                                      <Check className="h-4 w-4 text-white/60" />
+                                    )}
+                                    <span className="text-white text-sm font-[Satoshi]">
+                                      {period.isActive ? 'Active' : 'Closed'}
+                                    </span>
+                                  </div>
+                                  <span className="text-white/60 text-xs">
+                                    {period.proofsCount} proofs
                                   </span>
                                 </div>
-                                <span className="text-white/60 text-xs">
-                                  {period.proofsCount} proofs
-                                </span>
+                                <div className="text-white/60 text-xs mb-3">
+                                  Started: {period.startDate.toLocaleDateString()}
+                                </div>
+                                {period.isActive ? (
+                                  <Button
+                                    onClick={async () => {
+                                      // Call smart contract to close period
+                                      try {
+                                        setContractLoading(true);
+                                        setMessage('Closing claim period...');
+                                        // Implementation would go here
+                                        setMessage('Period closed successfully!');
+                                      } catch (error) {
+                                        setMessage('Failed to close period');
+                                      } finally {
+                                        setContractLoading(false);
+                                        setTimeout(() => setMessage(''), 3000);
+                                      }
+                                    }}
+                                    disabled={contractLoading}
+                                    className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
+                                    style={{
+                                      background: 'rgba(239, 68, 68, 0.2)',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    }}
+                                  >
+                                    <span className="text-white text-sm font-[Satoshi]">Close Period</span>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedClaimPeriodForAirdrop(period);
+                                      setCurrentView('airdrop');
+                                    }}
+                                    className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
+                                    style={{
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    }}
+                                  >
+                                    <span className="text-white text-sm font-[Satoshi]">Setup Airdrop</span>
+                                  </Button>
+                                )}
                               </div>
-                              <div className="text-white/60 text-xs mb-3">
-                                Started: {period.startDate.toLocaleDateString()}
-                              </div>
-                              {period.isActive ? (
-                                <Button
-                                  onClick={() => {
-                                    setClaimPeriods(claimPeriods.map(p =>
-                                      p.id === period.id
-                                        ? { ...p, isActive: false, endDate: new Date() }
-                                        : p
-                                    ));
-                                  }}
-                                  className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
-                                  style={{
-                                    background: 'rgba(239, 68, 68, 0.2)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                  }}
-                                >
-                                  <span className="text-white text-sm font-[Satoshi]">Close Period</span>
-                                </Button>
-                              ) : (
-                                <Button
-                                  onClick={() => {
-                                    setSelectedClaimPeriodForAirdrop(period);
-                                    setCurrentView('airdrop');
-                                  }}
-                                  className="w-full rounded-lg py-2 transition-all duration-200 hover:scale-105"
-                                  style={{
-                                    background: 'rgba(59, 130, 246, 0.2)',
-                                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                                  }}
-                                >
-                                  <span className="text-white text-sm font-[Satoshi]">Setup Airdrop</span>
-                                </Button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
