@@ -2,6 +2,7 @@
 
 import { HalftoneCloud } from './components/HalftoneCloud';
 import { LiquidGlassOverlay } from './components/LiquidGlassOverlay';
+import { OnrampButton } from './components/OnrampButton';
 import { useEffect, useState } from 'react';
 import sdk from '@farcaster/miniapp-sdk';
 
@@ -46,6 +47,14 @@ export default function Home() {
           </div>
         </div>
       )}
+      
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+        <OnrampButton 
+          variant="outline" 
+          size="lg"
+          className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+        />
+      </div>
     </div>
   );
 }
