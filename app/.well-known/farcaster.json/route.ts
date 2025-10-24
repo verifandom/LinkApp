@@ -12,6 +12,8 @@ export async function GET() {
       splashBackgroundColor: minikitConfig.miniapp.splashBackgroundColor,
       homeUrl: minikitConfig.miniapp.homeUrl,
       webhookUrl: minikitConfig.miniapp.webhookUrl,
+      primaryCategory: minikitConfig.miniapp.primaryCategory,
+      tags: minikitConfig.miniapp.tags,
     },
   };
 
