@@ -11,12 +11,13 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    async function checkMiniAppContext() {
+    async function initializeMiniApp() {
       try {
         const inMiniApp = await sdk.isInMiniApp();
         setIsInMiniApp(inMiniApp);
         
         if (inMiniApp) {
+          await sdk.actions.ready();
           const context = await sdk.context;
           setUser(context?.user);
         }
@@ -25,7 +26,7 @@ export default function Home() {
       }
     }
     
-    checkMiniAppContext();
+    initializeMiniApp();
   }, []);
 
   return (

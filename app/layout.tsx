@@ -17,6 +17,16 @@ export const metadata: Metadata = {
     description: minikitConfig.miniapp.ogDescription || minikitConfig.miniapp.description,
     images: [minikitConfig.miniapp.ogImageUrl],
   },
+  other: {
+    'fc:miniapp': JSON.stringify({
+      version: minikitConfig.miniapp.version,
+      imageUrl: minikitConfig.miniapp.heroImageUrl,
+      launchButton: {
+        text: 'Launch Link',
+        backgroundColor: '#000000'
+      }
+    })
+  }
 };
 
 export default function RootLayout({
