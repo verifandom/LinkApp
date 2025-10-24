@@ -64,7 +64,21 @@ export async function GET(request: NextRequest) {
     const channelId = channel.id || '';
     const channelName = channel.snippet?.title || '';
 
-    // Return HTML that sends message to opener window
+    // Check if it's a mobile/mini app request
+    const isMobile = request.headers.get('user-agent')?.match(/iPhone|iPad|iPod|Android/i);
+
+    if (isMobile || !request.headers.get('referer')?.includes('oauth')) {
+      // Mobile: redirect back to app with data in URL params
+      const redirectUrl = new URL('/', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+      redirectUrl.searchParams.set('youtube-auth', 'success');
+      redirectUrl.searchParams.set('accessToken', tokens.access_token);
+      redirectUrl.searchParams.set('channelId', channelId);
+      redirectUrl.searchParams.set('channelName', channelName);
+
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Desktop: Return HTML that sends message to opener window
     const html = `
       <!DOCTYPE html>
       <html>

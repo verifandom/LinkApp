@@ -163,6 +163,61 @@ export function LiquidGlassOverlay({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Handle YouTube OAuth callback (mobile redirect)
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const youtubeAuth = params.get('youtube-auth');
+    const accessToken = params.get('accessToken');
+    const channelId = params.get('channelId');
+    const channelName = params.get('channelName');
+    const savedWallet = sessionStorage.getItem('youtube-auth-wallet');
+
+    if (youtubeAuth === 'success' && accessToken && channelId && savedWallet) {
+      setMessage('Generating Reclaim proof...');
+
+      // Generate Reclaim proof
+      fetch('/api/reclaim/generate-creator-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          userAddress: savedWallet,
+          channelId,
+          channelName: channelName || '',
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+            sessionStorage.setItem('youtube-connected', 'true');
+            setMessage('YouTube verified with Reclaim!');
+          } else {
+            setMessage('Failed to verify YouTube');
+          }
+
+          // Clean up URL params and session
+          sessionStorage.removeItem('youtube-auth-wallet');
+          sessionStorage.removeItem('youtube-auth-pending');
+          window.history.replaceState({}, document.title, '/');
+
+          setTimeout(() => setMessage(''), 3000);
+        })
+        .catch((error) => {
+          console.error('Reclaim proof error:', error);
+          setMessage('Failed to generate proof');
+          setTimeout(() => setMessage(''), 3000);
+        });
+    }
+
+    // Check if YouTube was previously connected
+    if (sessionStorage.getItem('youtube-connected') === 'true') {
+      setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+    }
+  }, [mounted]);
+
   // Fetch ETH price
   useEffect(() => {
     async function fetchEthPrice() {
@@ -822,60 +877,71 @@ export function LiquidGlassOverlay({
                             }
 
                             try {
-                              setMessage('Opening YouTube OAuth...');
+                              setMessage('Redirecting to YouTube OAuth...');
 
                               const authResponse = await fetch('/api/auth/youtube?type=creator');
                               const { authUrl } = await authResponse.json();
 
-                              const width = 600;
-                              const height = 700;
-                              const left = window.screen.width / 2 - width / 2;
-                              const top = window.screen.height / 2 - height / 2;
+                              // Store wallet address for after redirect
+                              sessionStorage.setItem('youtube-auth-wallet', walletAddress);
+                              sessionStorage.setItem('youtube-auth-pending', 'true');
 
-                              const authWindow = window.open(
-                                authUrl,
-                                'YouTube OAuth',
-                                `width=${width},height=${height},left=${left},top=${top}`
-                              );
+                              // On mobile/mini app, redirect directly
+                              if (isInMiniApp || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                                window.location.href = authUrl;
+                              } else {
+                                // Desktop: use popup
+                                const width = 600;
+                                const height = 700;
+                                const left = window.screen.width / 2 - width / 2;
+                                const top = window.screen.height / 2 - height / 2;
 
-                              const handleMessage = async (event: MessageEvent) => {
-                                if (event.data.type === 'youtube-auth-success') {
-                                  authWindow?.close();
-                                  const { accessToken, channelId, channelName } = event.data;
+                                const authWindow = window.open(
+                                  authUrl,
+                                  'YouTube OAuth',
+                                  `width=${width},height=${height},left=${left},top=${top}`
+                                );
 
-                                  setMessage('Generating Reclaim proof...');
+                                const handleMessage = async (event: MessageEvent) => {
+                                  if (event.data.type === 'youtube-auth-success') {
+                                    authWindow?.close();
+                                    const { accessToken, channelId, channelName } = event.data;
 
-                                  try {
-                                    const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        accessToken,
-                                        userAddress: walletAddress,
-                                        channelId,
-                                        channelName,
-                                      }),
-                                    });
+                                    setMessage('Generating Reclaim proof...');
 
-                                    const proofData = await proofResponse.json();
+                                    try {
+                                      const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          accessToken,
+                                          userAddress: walletAddress,
+                                          channelId,
+                                          channelName,
+                                        }),
+                                      });
 
-                                    if (proofData.success) {
-                                      setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
-                                      setMessage('YouTube verified with Reclaim!');
-                                    } else {
-                                      setMessage('Failed to verify YouTube');
+                                      const proofData = await proofResponse.json();
+
+                                      if (proofData.success) {
+                                        setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+                                        sessionStorage.setItem('youtube-connected', 'true');
+                                        setMessage('YouTube verified with Reclaim!');
+                                      } else {
+                                        setMessage('Failed to verify YouTube');
+                                      }
+                                    } catch (error) {
+                                      console.error('Reclaim proof error:', error);
+                                      setMessage('Failed to generate proof');
                                     }
-                                  } catch (error) {
-                                    console.error('Reclaim proof error:', error);
-                                    setMessage('Failed to generate proof');
+
+                                    setTimeout(() => setMessage(''), 3000);
+                                    window.removeEventListener('message', handleMessage);
                                   }
+                                };
 
-                                  setTimeout(() => setMessage(''), 3000);
-                                  window.removeEventListener('message', handleMessage);
-                                }
-                              };
-
-                              window.addEventListener('message', handleMessage);
+                                window.addEventListener('message', handleMessage);
+                              }
                             } catch (error) {
                               console.error('YouTube OAuth error:', error);
                               setMessage('Failed to initiate OAuth');
