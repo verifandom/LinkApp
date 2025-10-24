@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { minikitConfig } from "@/minikit.config";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: minikitConfig.miniapp.ogTitle || minikitConfig.miniapp.name,
@@ -25,7 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }

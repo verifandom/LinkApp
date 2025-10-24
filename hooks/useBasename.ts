@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { type Address } from 'viem'
-import { reverseResolveBasename, getBasenameMetadata } from '@/lib/basenames-simple'
+import { reverseResolveBasename, getBasenameMetadata } from '@/lib/basenames'
 
 interface BasenameData {
   basename: string | null
@@ -93,7 +93,7 @@ export function useBasenameSearch() {
     setSearchError(null)
 
     try {
-      const { resolveBasename, getBasenameMetadata } = await import('@/lib/basenames-simple')
+      const { resolveBasename, getBasenameMetadata } = await import('@/lib/basenames')
       
       // Clean the query
       const cleanQuery = query.trim().toLowerCase()
