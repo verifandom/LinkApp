@@ -30,6 +30,8 @@ import {
 import { BasenameDisplay, BasenameSearchDisplay } from './BasenameDisplay';
 import { OnrampButton } from './OnrampButton';
 import type { Address } from 'viem';
+import { useBalance } from 'wagmi';
+import { base } from 'wagmi/chains';
 
 type UserType = 'creator' | 'fan';
 type ViewType = 'dashboard' | 'creatorProfile' | 'onramp' | 'airdrop';
@@ -75,6 +77,7 @@ export function LiquidGlassOverlay({
   const [userType, setUserType] = useState<UserType>('creator');
   const [showLabel, setShowLabel] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [connectedAccounts, setConnectedAccounts] = useState({
     youtube: false,
     instagram: false,
@@ -97,6 +100,15 @@ export function LiquidGlassOverlay({
   const walletAddress = farcasterWalletAddress;
   const [contractLoading, setContractLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [ethPriceUSD, setEthPriceUSD] = useState<number>(0);
+
+  // Use wagmi hook to get balance
+  const { data: balanceData } = useBalance({
+    address: walletAddress || undefined,
+    chainId: base.id,
+  });
+
+  const ethBalance = balanceData ? parseFloat(balanceData.formatted).toFixed(6) : '0.000000';
 
   // Basename state
   const [basenameQuery, setBasenameQuery] = useState('');
@@ -139,6 +151,8 @@ export function LiquidGlassOverlay({
   );
 
   useEffect(() => {
+    setMounted(true);
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -147,6 +161,32 @@ export function LiquidGlassOverlay({
     window.addEventListener('resize', checkMobile);
 
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fetch ETH price
+  useEffect(() => {
+    async function fetchEthPrice() {
+      try {
+        // Fetch ETH price from CoinGecko
+        const priceResponse = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+        );
+        const priceData = await priceResponse.json();
+
+        if (priceData.ethereum?.usd) {
+          setEthPriceUSD(priceData.ethereum.usd);
+        }
+      } catch (error) {
+        console.error('Error fetching ETH price:', error);
+        // Fallback price if API fails
+        setEthPriceUSD(3000);
+      }
+    }
+
+    fetchEthPrice();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchEthPrice, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // Contract functions
@@ -743,10 +783,15 @@ export function LiquidGlassOverlay({
                     >
                       <div className='text-center mb-4'>
                         <div className='text-white/60 text-sm mb-2'>
-                          Balance
+                          Balance (Base)
                         </div>
                         <div className='text-white text-[32px] font-[Satoshi] font-bold'>
-                          ${balance.toFixed(2)}
+                          {mounted && walletAddress
+                            ? `$${(parseFloat(ethBalance) * ethPriceUSD).toFixed(2)}`
+                            : '$0.00'}
+                        </div>
+                        <div className='text-white/40 text-xs mt-1'>
+                          {mounted && walletAddress ? `${ethBalance} ETH` : '0.000000 ETH'}
                         </div>
                       </div>
                       <Button
@@ -1128,10 +1173,15 @@ export function LiquidGlassOverlay({
                     >
                       <div className='mb-6'>
                         <div className='text-white/60 text-sm mb-2'>
-                          Your Balance
+                          Your Balance (Base)
                         </div>
                         <div className='text-white text-[28px] font-[Satoshi] font-bold'>
-                          ${balance.toFixed(2)}
+                          {mounted && walletAddress
+                            ? `$${(parseFloat(ethBalance) * ethPriceUSD).toFixed(2)}`
+                            : '$0.00'}
+                        </div>
+                        <div className='text-white/40 text-xs mt-1'>
+                          {mounted && walletAddress ? `${ethBalance} ETH` : '0.000000 ETH'}
                         </div>
                       </div>
 

@@ -20,13 +20,16 @@ export default function Home() {
         if (inMiniApp) {
           await sdk.actions.ready();
 
-          // Auto-connect to Farcaster wallet if in mini app and not already connected
+          // Auto-connect to Farcaster wallet (first connector)
           if (!isConnected && connectors.length > 0) {
-            connect({ connector: connectors[0] });
+            const farcasterConnector = connectors.find(c => c.id === 'farcasterMiniApp');
+            if (farcasterConnector) {
+              connect({ connector: farcasterConnector });
+            }
           }
         }
       } catch (error) {
-        console.log('Not in mini app context');
+        console.log('Not in mini app context:', error);
       }
     }
 
