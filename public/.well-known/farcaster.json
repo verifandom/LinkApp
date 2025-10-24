@@ -19,8 +19,6 @@
         "tags": ["creator", "fan", "airdrop", "zktls", "web2"],
         "heroImageUrl": "https://link-app-two-tawny.vercel.app/hero.png",
         "tagline": "Bridge web2 creators to web3",
-        "ogTitle": "Link - Connect Creators with Fans",
-        "ogDescription": "Enable web2 creators to reward their fans through verified proofs and airdrops.",
         "ogImageUrl": "https://link-app-two-tawny.vercel.app/og-image.png"
     },
     "baseBuilder": {
