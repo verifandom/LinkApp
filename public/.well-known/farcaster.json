@@ -9,7 +9,7 @@
         "name": "Link",
         "subtitle": "Connect creators with fans",
         "description": "Link enables web2 creators to connect with their fans through zk-TLS proofs and airdrops. Fans can submit proofs to participate in creator airdrops.",
-        "screenshotUrls": [],
+        "screenshotUrls": ["https://link-app-two-tawny.vercel.app/hero.png"],
         "iconUrl": "https://link-app-two-tawny.vercel.app/icon.png",
         "splashImageUrl": "https://link-app-two-tawny.vercel.app/splash.png",
         "splashBackgroundColor": "#000000",
