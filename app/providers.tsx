@@ -19,6 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           config={{
             appearance: {
               mode: 'auto',
+              theme: 'default',
             },
             wallet: {
               display: 'modal',

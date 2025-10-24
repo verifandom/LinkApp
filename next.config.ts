@@ -8,6 +8,19 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://accounts.google.com;"
+          },
+        ],
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     // Handle React Native dependencies in browser context
     if (!isServer) {

@@ -755,21 +755,6 @@ export function LiquidGlassOverlay({
                       Creator Dashboard
                     </h2>
 
-                    {/* Loading State */}
-                    {(creatorsLoading || periodsLoading) && (
-                      <div
-                        className='rounded-2xl p-6 text-center'
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          backdropFilter: 'blur(30px)',
-                          WebkitBackdropFilter: 'blur(30px)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                        }}
-                      >
-                        <div className='animate-spin h-6 w-6 border-2 border-white/20 border-t-white rounded-full mx-auto mb-3' />
-                        <p className='text-white/60'>Loading data...</p>
-                      </div>
-                    )}
 
                     {/* Balance & Actions */}
                     <div
@@ -1011,149 +996,149 @@ export function LiquidGlassOverlay({
                     {(connectedAccounts.youtube ||
                       connectedAccounts.instagram ||
                       connectedAccounts.twitter) && (
-                      <Button
-                        onClick={() => {
-                          // Use connected social as channel ID
-                          const channelId = connectedAccounts.youtube
-                            ? 'youtube_channel'
-                            : connectedAccounts.instagram
-                              ? 'instagram_channel'
-                              : 'twitter_channel';
-                          createClaimPeriod(channelId);
-                        }}
-                        disabled={
-                          claimPeriods.some((p) => p.isActive) ||
-                          contractLoading ||
-                          !walletAddress
-                        }
-                        className='w-full rounded-xl py-6 transition-all duration-200 hover:scale-105'
-                        style={{
-                          background:
+                        <Button
+                          onClick={() => {
+                            // Use connected social as channel ID
+                            const channelId = connectedAccounts.youtube
+                              ? 'youtube_channel'
+                              : connectedAccounts.instagram
+                                ? 'instagram_channel'
+                                : 'twitter_channel';
+                            createClaimPeriod(channelId);
+                          }}
+                          disabled={
                             claimPeriods.some((p) => p.isActive) ||
+                            contractLoading ||
                             !walletAddress
-                              ? 'rgba(255, 255, 255, 0.05)'
-                              : 'rgba(34, 197, 94, 0.2)',
-                          border: '1px solid rgba(34, 197, 94, 0.3)',
-                        }}
-                      >
-                        <Plus className='h-5 w-5 mr-2 text-white' />
-                        <span className='text-white font-[Satoshi]'>
-                          {!walletAddress
-                            ? 'Connect Wallet First'
-                            : claimPeriods.some((p) => p.isActive)
-                              ? 'Period Already Active'
-                              : contractLoading
-                                ? 'Creating...'
-                                : 'Create Claim Period'}
-                        </span>
-                      </Button>
-                    )}
+                          }
+                          className='w-full rounded-xl py-6 transition-all duration-200 hover:scale-105'
+                          style={{
+                            background:
+                              claimPeriods.some((p) => p.isActive) ||
+                                !walletAddress
+                                ? 'rgba(255, 255, 255, 0.05)'
+                                : 'rgba(34, 197, 94, 0.2)',
+                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                          }}
+                        >
+                          <Plus className='h-5 w-5 mr-2 text-white' />
+                          <span className='text-white font-[Satoshi]'>
+                            {!walletAddress
+                              ? 'Connect Wallet First'
+                              : claimPeriods.some((p) => p.isActive)
+                                ? 'Period Already Active'
+                                : contractLoading
+                                  ? 'Creating...'
+                                  : 'Create Claim Period'}
+                          </span>
+                        </Button>
+                      )}
 
                     {/* Claim Periods List */}
                     {(transformedClaimPeriods.length > 0 ||
                       (walletAddress && dbClaimPeriods)) && (
-                      <div
-                        className='rounded-2xl p-6'
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          backdropFilter: 'blur(30px)',
-                          WebkitBackdropFilter: 'blur(30px)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                        }}
-                      >
-                        <h3 className='text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]'>
-                          Claim Periods
-                        </h3>
-                        {transformedClaimPeriods.length === 0 ? (
-                          <div className='text-white/60 text-sm text-center py-4'>
-                            No claim periods yet
-                          </div>
-                        ) : (
-                          <div className='space-y-3'>
-                            {transformedClaimPeriods.map((period) => (
-                              <div
-                                key={period.id}
-                                className='rounded-xl p-4'
-                                style={{
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: period.isActive
-                                    ? '1px solid rgba(34, 197, 94, 0.3)'
-                                    : '1px solid rgba(255, 255, 255, 0.1)',
-                                }}
-                              >
-                                <div className='flex items-center justify-between mb-2'>
-                                  <div className='flex items-center gap-2'>
-                                    {period.isActive ? (
-                                      <Clock className='h-4 w-4 text-green-400' />
-                                    ) : (
-                                      <Check className='h-4 w-4 text-white/60' />
-                                    )}
-                                    <span className='text-white text-sm font-[Satoshi]'>
-                                      {period.isActive ? 'Active' : 'Closed'}
+                        <div
+                          className='rounded-2xl p-6'
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                          }}
+                        >
+                          <h3 className='text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]'>
+                            Claim Periods
+                          </h3>
+                          {transformedClaimPeriods.length === 0 ? (
+                            <div className='text-white/60 text-sm text-center py-4'>
+                              No claim periods yet
+                            </div>
+                          ) : (
+                            <div className='space-y-3'>
+                              {transformedClaimPeriods.map((period) => (
+                                <div
+                                  key={period.id}
+                                  className='rounded-xl p-4'
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    border: period.isActive
+                                      ? '1px solid rgba(34, 197, 94, 0.3)'
+                                      : '1px solid rgba(255, 255, 255, 0.1)',
+                                  }}
+                                >
+                                  <div className='flex items-center justify-between mb-2'>
+                                    <div className='flex items-center gap-2'>
+                                      {period.isActive ? (
+                                        <Clock className='h-4 w-4 text-green-400' />
+                                      ) : (
+                                        <Check className='h-4 w-4 text-white/60' />
+                                      )}
+                                      <span className='text-white text-sm font-[Satoshi]'>
+                                        {period.isActive ? 'Active' : 'Closed'}
+                                      </span>
+                                    </div>
+                                    <span className='text-white/60 text-xs'>
+                                      {period.proofsCount} proofs
                                     </span>
                                   </div>
-                                  <span className='text-white/60 text-xs'>
-                                    {period.proofsCount} proofs
-                                  </span>
+                                  <div className='text-white/60 text-xs mb-3'>
+                                    Started:{' '}
+                                    {period.startDate.toLocaleDateString()}
+                                  </div>
+                                  {period.isActive ? (
+                                    <Button
+                                      onClick={async () => {
+                                        // Call smart contract to close period
+                                        try {
+                                          setContractLoading(true);
+                                          setMessage('Closing claim period...');
+                                          // Implementation would go here
+                                          setMessage(
+                                            'Period closed successfully!'
+                                          );
+                                        } catch (error) {
+                                          setMessage('Failed to close period');
+                                        } finally {
+                                          setContractLoading(false);
+                                          setTimeout(() => setMessage(''), 3000);
+                                        }
+                                      }}
+                                      disabled={contractLoading}
+                                      className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.2)',
+                                        border:
+                                          '1px solid rgba(239, 68, 68, 0.3)',
+                                      }}
+                                    >
+                                      <span className='text-white text-sm font-[Satoshi]'>
+                                        Close Period
+                                      </span>
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      onClick={() => {
+                                        setSelectedClaimPeriodForAirdrop(period);
+                                        setCurrentView('airdrop');
+                                      }}
+                                      className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
+                                      style={{
+                                        background: 'rgba(59, 130, 246, 0.2)',
+                                        border:
+                                          '1px solid rgba(59, 130, 246, 0.3)',
+                                      }}
+                                    >
+                                      <span className='text-white text-sm font-[Satoshi]'>
+                                        Setup Airdrop
+                                      </span>
+                                    </Button>
+                                  )}
                                 </div>
-                                <div className='text-white/60 text-xs mb-3'>
-                                  Started:{' '}
-                                  {period.startDate.toLocaleDateString()}
-                                </div>
-                                {period.isActive ? (
-                                  <Button
-                                    onClick={async () => {
-                                      // Call smart contract to close period
-                                      try {
-                                        setContractLoading(true);
-                                        setMessage('Closing claim period...');
-                                        // Implementation would go here
-                                        setMessage(
-                                          'Period closed successfully!'
-                                        );
-                                      } catch (error) {
-                                        setMessage('Failed to close period');
-                                      } finally {
-                                        setContractLoading(false);
-                                        setTimeout(() => setMessage(''), 3000);
-                                      }
-                                    }}
-                                    disabled={contractLoading}
-                                    className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
-                                    style={{
-                                      background: 'rgba(239, 68, 68, 0.2)',
-                                      border:
-                                        '1px solid rgba(239, 68, 68, 0.3)',
-                                    }}
-                                  >
-                                    <span className='text-white text-sm font-[Satoshi]'>
-                                      Close Period
-                                    </span>
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    onClick={() => {
-                                      setSelectedClaimPeriodForAirdrop(period);
-                                      setCurrentView('airdrop');
-                                    }}
-                                    className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
-                                    style={{
-                                      background: 'rgba(59, 130, 246, 0.2)',
-                                      border:
-                                        '1px solid rgba(59, 130, 246, 0.3)',
-                                    }}
-                                  >
-                                    <span className='text-white text-sm font-[Satoshi]'>
-                                      Setup Airdrop
-                                    </span>
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 )}
 
@@ -1326,9 +1311,9 @@ export function LiquidGlassOverlay({
                         style={{
                           background:
                             airdropAmount &&
-                            parseFloat(airdropAmount) > 0 &&
-                            parseFloat(airdropAmount) <= balance &&
-                            walletAddress
+                              parseFloat(airdropAmount) > 0 &&
+                              parseFloat(airdropAmount) <= balance &&
+                              walletAddress
                               ? 'rgba(34, 197, 94, 0.2)'
                               : 'rgba(255, 255, 255, 0.05)',
                           border: '1px solid rgba(34, 197, 94, 0.3)',

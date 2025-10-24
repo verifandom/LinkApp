@@ -95,3 +95,19 @@
 html {
   font-size: var(--font-size);
 }
+
+/* OnchainKit Wallet Components - Satoshi Font */
+[data-testid="ockWallet"] button,
+[data-testid="ockWallet"] span,
+[data-testid="ockWallet"] div,
+[data-testid="ockConnectWallet"] button,
+[data-testid="ockConnectWallet"] span,
+[data-testid="ockConnectWallet"] div,
+.ock-wallet button,
+.ock-wallet span,
+.ock-wallet div,
+.ock-connect-wallet button,
+.ock-connect-wallet span,
+.ock-connect-wallet div {
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
