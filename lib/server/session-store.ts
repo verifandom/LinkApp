@@ -11,6 +11,8 @@ interface Session {
   };
   type: string;
   createdAt: number;
+  channelId?: string;
+  channelName?: string;
 }
 
 class SessionStore {

@@ -163,59 +163,79 @@ export function LiquidGlassOverlay({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Handle YouTube OAuth callback (mobile redirect)
+  // Poll for OAuth result when in mini app
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
 
-    const params = new URLSearchParams(window.location.search);
-    const youtubeAuth = params.get('youtube-auth');
-    const accessToken = params.get('accessToken');
-    const channelId = params.get('channelId');
-    const channelName = params.get('channelName');
-    const savedWallet = sessionStorage.getItem('youtube-auth-wallet');
+    // Check if YouTube was previously connected
+    if (sessionStorage.getItem('youtube-connected') === 'true') {
+      setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+      return;
+    }
 
-    if (youtubeAuth === 'success' && accessToken && channelId && savedWallet) {
-      setMessage('Generating Reclaim proof...');
+    // Check if we're waiting for OAuth to complete
+    const sessionId = sessionStorage.getItem('youtube-oauth-session');
+    if (!sessionId) return;
 
-      // Generate Reclaim proof
-      fetch('/api/reclaim/generate-creator-proof', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accessToken,
-          userAddress: savedWallet,
-          channelId,
-          channelName: channelName || '',
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
+    setMessage('Checking for YouTube connection...');
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/oauth/poll?sessionId=${sessionId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          // OAuth completed! Generate Reclaim proof
+          clearInterval(pollInterval);
+          sessionStorage.removeItem('youtube-oauth-session');
+          setMessage('Generating Reclaim proof...');
+
+          const savedWallet = sessionStorage.getItem('youtube-auth-wallet');
+          if (!savedWallet) {
+            setMessage('Wallet address not found');
+            return;
+          }
+
+          const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: data.accessToken,
+              userAddress: savedWallet,
+              channelId: data.channelId,
+              channelName: data.channelName,
+            }),
+          });
+
+          const proofData = await proofResponse.json();
+          if (proofData.success) {
             setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
             sessionStorage.setItem('youtube-connected', 'true');
+            sessionStorage.removeItem('youtube-auth-wallet');
             setMessage('YouTube verified with Reclaim!');
           } else {
             setMessage('Failed to verify YouTube');
           }
 
-          // Clean up URL params and session
-          sessionStorage.removeItem('youtube-auth-wallet');
-          sessionStorage.removeItem('youtube-auth-pending');
-          window.history.replaceState({}, document.title, '/');
-
           setTimeout(() => setMessage(''), 3000);
-        })
-        .catch((error) => {
-          console.error('Reclaim proof error:', error);
-          setMessage('Failed to generate proof');
-          setTimeout(() => setMessage(''), 3000);
-        });
-    }
+        }
+      } catch (error) {
+        console.error('OAuth polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
 
-    // Check if YouTube was previously connected
-    if (sessionStorage.getItem('youtube-connected') === 'true') {
-      setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
-    }
+    // Stop polling after 5 minutes
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      sessionStorage.removeItem('youtube-oauth-session');
+      setMessage('OAuth timeout - please try again');
+      setTimeout(() => setMessage(''), 3000);
+    }, 300000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
   }, [mounted]);
 
   // Fetch ETH price
@@ -882,19 +902,23 @@ export function LiquidGlassOverlay({
                               const authResponse = await fetch('/api/auth/youtube?type=creator');
                               const { authUrl } = await authResponse.json();
 
-                              // Store wallet address for after redirect
+                              // Generate and store session ID for polling
+                              const sessionId = crypto.randomUUID();
                               sessionStorage.setItem('youtube-auth-wallet', walletAddress);
-                              sessionStorage.setItem('youtube-auth-pending', 'true');
+                              sessionStorage.setItem('youtube-oauth-session', sessionId);
+
+                              // Add session ID to auth URL
+                              const authUrlWithSession = `${authUrl}&session=${sessionId}`;
 
                               // On mini app, use SDK to open external link
                               if (isInMiniApp) {
                                 try {
                                   const { default: sdk } = await import('@farcaster/miniapp-sdk');
-                                  await sdk.actions.openUrl(authUrl);
+                                  await sdk.actions.openUrl(authUrlWithSession);
                                   setMessage('Complete OAuth in browser, then return to app');
                                 } catch (error) {
                                   console.error('SDK openUrl error:', error);
-                                  window.location.href = authUrl;
+                                  window.location.href = authUrlWithSession;
                                 }
                               } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
                                 // Mobile browser: redirect directly
