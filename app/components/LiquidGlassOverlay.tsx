@@ -886,8 +886,18 @@ export function LiquidGlassOverlay({
                               sessionStorage.setItem('youtube-auth-wallet', walletAddress);
                               sessionStorage.setItem('youtube-auth-pending', 'true');
 
-                              // On mobile/mini app, redirect directly
-                              if (isInMiniApp || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                              // On mini app, use SDK to open external link
+                              if (isInMiniApp) {
+                                try {
+                                  const { default: sdk } = await import('@farcaster/miniapp-sdk');
+                                  await sdk.actions.openUrl(authUrl);
+                                  setMessage('Complete OAuth in browser, then return to app');
+                                } catch (error) {
+                                  console.error('SDK openUrl error:', error);
+                                  window.location.href = authUrl;
+                                }
+                              } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                                // Mobile browser: redirect directly
                                 window.location.href = authUrl;
                               } else {
                                 // Desktop: use popup
