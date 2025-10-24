@@ -1366,34 +1366,27 @@ export function LiquidGlassOverlay() {
             )}
           </AnimatePresence>
 
-          {/* Wallet/Basename Display */}
+          {/* Wallet Button */}
           <div className='flex-shrink-0 flex items-center gap-2'>
-            {walletAddress && connectedBasename ? (
-              <BasenameDisplay
-                address={walletAddress}
-                className='bg-white/10 rounded-full px-3 py-1'
+            <button
+              className='flex-shrink-0 rounded-full p-2 transition-all duration-300 hover:scale-110'
+              style={{
+                background: walletAddress
+                  ? 'rgba(34, 197, 94, 0.2)'
+                  : 'rgba(255, 255, 255, 0.15)',
+                border: walletAddress
+                  ? '1px solid rgba(34, 197, 94, 0.3)'
+                  : '1px solid rgba(255, 255, 255, 0.2)',
+                width: '36px',
+                height: '36px',
+              }}
+              onClick={connectWallet}
+              disabled={isConnecting}
+            >
+              <Wallet
+                className={`h-4 w-4 ${walletAddress ? 'text-green-400' : 'text-white'}`}
               />
-            ) : (
-              <button
-                className='flex-shrink-0 rounded-full p-2 transition-all duration-300 hover:scale-110'
-                style={{
-                  background: walletAddress
-                    ? 'rgba(34, 197, 94, 0.2)'
-                    : 'rgba(255, 255, 255, 0.15)',
-                  border: walletAddress
-                    ? '1px solid rgba(34, 197, 94, 0.3)'
-                    : '1px solid rgba(255, 255, 255, 0.2)',
-                  width: '36px',
-                  height: '36px',
-                }}
-                onClick={connectWallet}
-                disabled={isConnecting}
-              >
-                <Wallet
-                  className={`h-4 w-4 ${walletAddress ? 'text-green-400' : 'text-white'}`}
-                />
-              </button>
-            )}
+            </button>
           </div>
         </div>
       </div>
