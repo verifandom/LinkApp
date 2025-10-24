@@ -19,10 +19,10 @@ export const minikitConfig = {
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: 'social' as const,
     tags: ['creator', 'fan', 'airdrop', 'zktls', 'web2'],
-    heroImageUrl: `${ROOT_URL}/hero.png`,
+    heroImageUrl: `${ROOT_URL}/public/hero.png`,
     tagline: 'Bridge web2 creators to web3',
     ogTitle: 'Link - Connect Creators with Fans',
     ogDescription: 'Enable web2 creators to reward their fans through verified proofs and airdrops.',
-    ogImageUrl: `${ROOT_URL}/og-image.png`,
+    ogImageUrl: `${ROOT_URL}/public/og-image.png`,
   }
 } as const;
