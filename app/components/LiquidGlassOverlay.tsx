@@ -311,17 +311,63 @@ export function LiquidGlassOverlay({
       }
 
       const creatorData = await creatorResponse.json();
+      console.log('Creator data from DB:', creatorData);
+
       if (!creatorData.reclaimProof) {
         throw new Error('No Reclaim proof found. Please reconnect YouTube.');
       }
 
       const reclaimProof = JSON.parse(creatorData.reclaimProof);
+      console.log('=== RECLAIM PROOF DEBUG ===');
+      console.log('Raw proof from DB:', creatorData.reclaimProof);
+      console.log('Parsed proof:', reclaimProof);
+      console.log('Proof keys:', Object.keys(reclaimProof));
+      console.log('claimInfo:', reclaimProof.claimInfo);
+      console.log('claimInfo keys:', reclaimProof.claimInfo ? Object.keys(reclaimProof.claimInfo) : 'undefined');
+      console.log('claimInfo.identifier:', reclaimProof.claimInfo?.identifier);
+      console.log('signedClaim:', reclaimProof.signedClaim);
+      console.log('signedClaim.claim:', reclaimProof.signedClaim?.claim);
+      console.log('signedClaim.signatures:', reclaimProof.signedClaim?.signatures);
+      console.log('signedClaim.signatures type:', typeof reclaimProof.signedClaim?.signatures);
+      console.log('signedClaim.signatures length:', reclaimProof.signedClaim?.signatures?.length);
+      console.log('=== END DEBUG ===');
+
+      // Validate signatures array
+      if (!reclaimProof.signedClaim.signatures || !Array.isArray(reclaimProof.signedClaim.signatures)) {
+        throw new Error('Invalid signatures in Reclaim proof');
+      }
+
+      // Transform Reclaim proof to match the correct smart contract ABI structure
+      const transformedProof = {
+        claimInfo: {
+          provider: reclaimProof.claimInfo.provider,
+          parameters: reclaimProof.claimInfo.parameters,
+          context: reclaimProof.claimInfo.context
+        },
+        signedClaim: {
+          claim: {
+            identifier: reclaimProof.signedClaim.claim.identifier,
+            owner: reclaimProof.signedClaim.claim.owner,
+            timestampS: reclaimProof.signedClaim.claim.timestampS,
+            epoch: reclaimProof.signedClaim.claim.epoch
+          },
+          signatures: reclaimProof.signedClaim.signatures
+        }
+      };
+
+      console.log('=== TRANSFORMED PROOF DEBUG ===');
+      console.log('Transformed proof:', transformedProof);
+      console.log('signatures type:', typeof transformedProof.signedClaim.signatures);
+      console.log('signatures length:', transformedProof.signedClaim.signatures?.length);
+      console.log('signatures content:', transformedProof.signedClaim.signatures);
+      console.log('=== END TRANSFORMED PROOF DEBUG ===');
+
       setMessage('Registering as creator...');
 
       const registerHash = await linkUtils.registerCreator(
         channelId,
         tokenAddress as `0x${string}`,
-        reclaimProof
+        transformedProof
       );
       setMessage('Creator registered successfully!');
       console.log('Registration hash:', registerHash);
