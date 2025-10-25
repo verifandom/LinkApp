@@ -84,9 +84,16 @@ export async function GET(request: NextRequest) {
     const channelId = channel.id || '';
     const channelName = channel.snippet?.title || '';
 
+<<<<<<< HEAD
     // Store auth data in session for polling
     // We always store the session data because the client determines if it's mobile/desktop
     // The client passes sessionId in state, so if sessionId exists, store the data
+=======
+    // Check if it's a mobile/mini app request
+    const isMobile = request.headers.get('user-agent')?.match(/iPhone|iPad|iPod|Android/i);
+
+    // Always store auth data in session for polling (used by mobile flow)
+>>>>>>> f4f6009 (fix: always store auth data in session for polling and update mobile flow success page)
     if (sessionId) {
       sessionStore.set(sessionId, {
         tokens: {
@@ -99,6 +106,10 @@ export async function GET(request: NextRequest) {
         channelId,
         channelName,
       } as any);
+    }
+
+    // Mobile Farcaster flow: Show success page with return button
+    if (isMobile && sessionId) {
 
       const farcasterDeepLink = process.env.NEXT_PUBLIC_FARCASTER_UNIVERSAL_LINK || 'farcaster://miniapp/link';
 
