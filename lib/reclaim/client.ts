@@ -45,8 +45,8 @@ const reclaimClient = new ReclaimClient(appId, appSecret);
 export async function generateCreatorProof(
   accessToken: string,
   channelId: string,
-  walletAddress?: string
-): Promise<CreatorProof> {
+  _walletAddress?: string
+): Promise<any> {
   try {
     const publicOptions = {
       method: 'GET',
@@ -80,8 +80,12 @@ export async function generateCreatorProof(
     );
     console.log('Raw proof from zkFetch:', proof);
 
+    if (!proof) {
+      throw new Error('zkFetch returned undefined proof');
+    }
+
     // Verify the proof
-    const isVerified = await verifyProof(proof);
+    const isVerified = await verifyProof(proof as any);
     if (!isVerified) {
       throw new Error('Proof verification failed');
     }
@@ -101,7 +105,7 @@ export async function generateCreatorProof(
 export async function generateSubscriberProof(
   accessToken: string,
   channelId: string
-): Promise<SubscriberProof> {
+): Promise<any> {
   try {
     const publicOptions = {
       method: 'GET',
@@ -132,8 +136,12 @@ export async function generateSubscriberProof(
     );
     console.log('Raw subscriber proof from zkFetch:', proof);
 
+    if (!proof) {
+      throw new Error('zkFetch returned undefined proof');
+    }
+
     // Verify the proof
-    const isVerified = await verifyProof(proof);
+    const isVerified = await verifyProof(proof as any);
     if (!isVerified) {
       throw new Error('Proof verification failed');
     }
@@ -150,10 +158,10 @@ export async function generateSubscriberProof(
  * Verify a Reclaim proof
  */
 export async function verifyReclaimProof(
-  proof: ReclaimProof
+  proof: any
 ): Promise<boolean> {
   try {
-    const isVerified = await verifyProof(proof);
+    const isVerified = await verifyProof(proof as any);
     return isVerified;
   } catch (error) {
     console.error('Error verifying proof:', error);
@@ -193,4 +201,52 @@ export async function transformProofForOnchain(
     console.error('Error stack:', error);
     throw error;
   }
+}
+
+/**
+ * Validate and ensure proof structure matches the contract ABI
+ * Use this before passing proof to contract calls
+ */
+export async function validateProofStructure(proof: any): Promise<any> {
+  if (!proof) {
+    throw new Error('Proof is null or undefined');
+  }
+
+  if (!proof.claimInfo) {
+    throw new Error('Missing claimInfo in proof');
+  }
+
+  if (!proof.signedClaim) {
+    throw new Error('Missing signedClaim in proof');
+  }
+
+  if (!proof.signedClaim.claim) {
+    throw new Error('Missing claim in signedClaim');
+  }
+
+  if (!proof.signedClaim.claim.identifier) {
+    throw new Error('Missing identifier in claim');
+  }
+
+  if (!Array.isArray(proof.signedClaim.signatures)) {
+    throw new Error('signatures must be an array');
+  }
+
+  // Ensure proper types - viem needs exact types
+  return {
+    claimInfo: {
+      provider: String(proof.claimInfo.provider),
+      parameters: String(proof.claimInfo.parameters),
+      context: String(proof.claimInfo.context),
+    },
+    signedClaim: {
+      claim: {
+        identifier: proof.signedClaim.claim.identifier, // Should be bytes32 (0x...)
+        owner: proof.signedClaim.claim.owner, // Should be address (0x...)
+        timestampS: Number(proof.signedClaim.claim.timestampS),
+        epoch: Number(proof.signedClaim.claim.epoch),
+      },
+      signatures: proof.signedClaim.signatures, // Array of bytes
+    },
+  };
 }
