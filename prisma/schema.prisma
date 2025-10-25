@@ -15,6 +15,7 @@ model Creator {
   id                   Int     @id @default(autoincrement())
   channelId            String  @unique @db.VarChar(255) // YouTube channel ID (primary identifier)
   channelName          String  @db.VarChar(255)
+  walletAddress        String  @db.VarChar(42) // Creator's wallet address
   tokenContractAddress String? @db.VarChar(42) // Zora coin contract address (set after YouTube auth)
   reclaimProof         String? @db.Text // Reclaim proof JSON for on-chain registration
   registeredAt         DateTime @default(now())

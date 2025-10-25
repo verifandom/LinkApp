@@ -1004,6 +1004,7 @@ export function LiquidGlassOverlay({
                                           accessToken,
                                           channelId,
                                           channelName,
+                                          walletAddress,
                                         }),
                                       });
 

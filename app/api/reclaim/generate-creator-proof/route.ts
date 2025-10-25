@@ -17,6 +17,7 @@ import { createCreator } from '@/lib/db';
  *   accessToken: string,           // Google OAuth access token
  *   channelId: string,              // YouTube channel ID being verified
  *   channelName?: string,           // Optional channel name
+ *   walletAddress: string,          // Creator's wallet address
  *   tokenContractAddress?: string   // Optional Zora coin contract address (set after YouTube auth)
  * }
  *
@@ -33,6 +34,7 @@ const GenerateCreatorProofSchema = z.object({
   accessToken: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
+  walletAddress: z.string().startsWith('0x'), // Creator's wallet address (required)
   tokenContractAddress: z.string().startsWith('0x').optional(), // Zora coin contract address
 });
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accessToken, channelId, channelName, tokenContractAddress } =
+    const { accessToken, channelId, channelName, walletAddress, tokenContractAddress } =
       validationResult.data;
 
     try {
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
         const creator = await createCreator(
           channelId,
           channelName || '',
+          walletAddress,
           JSON.stringify(onchainProof),
           tokenContractAddress
         );

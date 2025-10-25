@@ -28,6 +28,7 @@ export { prisma };
 export async function createCreator(
   channelId: string,
   channelName: string,
+  walletAddress: string,
   reclaimProof?: string,
   tokenContractAddress?: string
 ) {
@@ -36,12 +37,14 @@ export async function createCreator(
       where: { channelId },
       update: {
         channelName,
+        walletAddress,
         reclaimProof: reclaimProof || undefined,
         tokenContractAddress: tokenContractAddress || undefined,
       },
       create: {
         channelId,
         channelName,
+        walletAddress,
         reclaimProof,
         tokenContractAddress,
       },
