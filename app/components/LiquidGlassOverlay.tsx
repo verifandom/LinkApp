@@ -110,7 +110,9 @@ export function LiquidGlassOverlay({
     chainId: base.id,
   });
 
-  const ethBalance = balanceData ? parseFloat(balanceData.formatted).toFixed(6) : '0.000000';
+  const ethBalance = balanceData
+    ? parseFloat(balanceData.formatted).toFixed(6)
+    : '0.000000';
 
   // Basename state
   const [basenameQuery, setBasenameQuery] = useState('');
@@ -184,16 +186,18 @@ export function LiquidGlassOverlay({
           sessionStorage.removeItem('youtube-oauth-session');
           setMessage('Generating Reclaim proof...');
 
-          const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accessToken: data.accessToken,
-              channelId: data.channelId,
-              channelName: data.channelName,
-              // tokenContractAddress can be added later manually
-            }),
-          });
+          const proofResponse = await fetch(
+            '/api/reclaim/generate-creator-proof',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                accessToken: data.accessToken,
+                channelId: data.channelId,
+                channelName: data.channelName,
+              }),
+            }
+          );
 
           const proofData = await proofResponse.json();
           console.log('Reclaim proof response:', proofData);
@@ -205,7 +209,9 @@ export function LiquidGlassOverlay({
             setYoutubeChannelId(data.channelId);
             setMessage('YouTube verified with Reclaim!');
           } else {
-            setMessage(`Failed to verify YouTube: ${proofData.error || 'Unknown error'}`);
+            setMessage(
+              `Failed to verify YouTube: ${proofData.error || 'Unknown error'}`
+            );
             console.error('Reclaim proof error:', proofData);
           }
 
@@ -324,13 +330,16 @@ export function LiquidGlassOverlay({
       console.log('=== END DEBUG ===');
 
       // Import validation function dynamically
-      const { validateProofStructure } = await import('@/lib/reclaim/client');
+      const { transformProofForOnchain } = await import('@/lib/reclaim/client');
 
       // Validate and transform the proof structure to ensure it matches the ABI
-      const transformedProof = await validateProofStructure(reclaimProof);
+      const transformedProof = await transformProofForOnchain(reclaimProof);
 
       console.log('=== VALIDATED PROOF ===');
-      console.log('Transformed proof:', JSON.stringify(transformedProof, null, 2));
+      console.log(
+        'Transformed proof:',
+        JSON.stringify(transformedProof, null, 2)
+      );
       console.log('=== END VALIDATED PROOF ===');
 
       setMessage('Registering as creator...');
@@ -363,7 +372,8 @@ export function LiquidGlassOverlay({
       setMessage('Checking creator registration...');
 
       // Use the token contract address from state, or zero address if not set
-      const tokenAddr = tokenContractAddress || '0x0000000000000000000000000000000000000000';
+      const tokenAddr =
+        tokenContractAddress || '0x0000000000000000000000000000000000000000';
 
       // Check/register creator first
       const isRegistered = await checkAndRegisterCreator(channelId, tokenAddr);
@@ -562,7 +572,8 @@ export function LiquidGlassOverlay({
                               }}
                             >
                               <p className='text-white text-sm font-[Satoshi] font-semibold'>
-                                {airdrop.claimPeriod?.creator?.channelName || 'Unknown'}
+                                {airdrop.claimPeriod?.creator?.channelName ||
+                                  'Unknown'}
                               </p>
                               <p className='text-white/60 text-xs mt-1'>
                                 {airdrop.claimPeriod?.isOpen
@@ -887,7 +898,6 @@ export function LiquidGlassOverlay({
                       Creator Dashboard
                     </h2>
 
-
                     {/* Balance & Actions */}
                     <div
                       className='rounded-2xl p-6'
@@ -908,7 +918,9 @@ export function LiquidGlassOverlay({
                             : '$0.00'}
                         </div>
                         <div className='text-white/40 text-xs mt-1'>
-                          {mounted && walletAddress ? `${ethBalance} ETH` : '0.000000 ETH'}
+                          {mounted && walletAddress
+                            ? `${ethBalance} ETH`
+                            : '0.000000 ETH'}
                         </div>
                       </div>
                       <Button
@@ -958,16 +970,24 @@ export function LiquidGlassOverlay({
 
                               // Get OAuth URL and session ID from backend
                               // /api/auth/youtube generates a unique sessionId and includes it in the OAuth state
-                              const authResponse = await fetch('/api/auth/youtube?type=creator');
-                              const { authUrl, sessionId } = await authResponse.json();
+                              const authResponse = await fetch(
+                                '/api/auth/youtube?type=creator'
+                              );
+                              const { authUrl, sessionId } =
+                                await authResponse.json();
 
                               if (!sessionId) {
-                                setMessage('Failed to initialize OAuth session');
+                                setMessage(
+                                  'Failed to initialize OAuth session'
+                                );
                                 return;
                               }
 
                               // Store session ID for polling after OAuth completes
-                              sessionStorage.setItem('youtube-oauth-session', sessionId);
+                              sessionStorage.setItem(
+                                'youtube-oauth-session',
+                                sessionId
+                              );
 
                               // Detect if mobile: check screen width (more reliable than user agent in Farcaster)
                               const isMobileScreen = window.innerWidth <= 768;
@@ -975,9 +995,13 @@ export function LiquidGlassOverlay({
                               // Mobile Farcaster: Use SDK to open external browser
                               if (isInMiniApp && isMobileScreen) {
                                 try {
-                                  const { default: sdk } = await import('@farcaster/miniapp-sdk');
+                                  const { default: sdk } = await import(
+                                    '@farcaster/miniapp-sdk'
+                                  );
                                   await sdk.actions.openUrl(authUrl);
-                                  setMessage('Complete OAuth in browser, then return to Farcaster');
+                                  setMessage(
+                                    'Complete OAuth in browser, then return to Farcaster'
+                                  );
                                   // Polling will be handled by useEffect when user returns
                                 } catch (error) {
                                   console.error('SDK openUrl error:', error);
@@ -988,8 +1012,10 @@ export function LiquidGlassOverlay({
                               else if (!isMobileScreen) {
                                 const width = 600;
                                 const height = 700;
-                                const left = window.screen.width / 2 - width / 2;
-                                const top = window.screen.height / 2 - height / 2;
+                                const left =
+                                  window.screen.width / 2 - width / 2;
+                                const top =
+                                  window.screen.height / 2 - height / 2;
 
                                 const authWindow = window.open(
                                   authUrl,
@@ -999,61 +1025,109 @@ export function LiquidGlassOverlay({
 
                                 // If popup failed (blocked), start polling instead
                                 if (!authWindow || authWindow.closed) {
-                                  setMessage('Popup blocked. Please allow popups and try again.');
-                                  sessionStorage.removeItem('youtube-oauth-session');
+                                  setMessage(
+                                    'Popup blocked. Please allow popups and try again.'
+                                  );
+                                  sessionStorage.removeItem(
+                                    'youtube-oauth-session'
+                                  );
                                   setTimeout(() => setMessage(''), 3000);
                                   return;
                                 }
 
                                 // Listen for postMessage from popup
-                                const handleMessage = async (event: MessageEvent) => {
-                                  if (event.data.type === 'youtube-auth-success') {
+                                const handleMessage = async (
+                                  event: MessageEvent
+                                ) => {
+                                  if (
+                                    event.data.type === 'youtube-auth-success'
+                                  ) {
                                     // Close the popup window (since COOP blocks window.close() from within)
                                     try {
                                       authWindow?.close();
                                     } catch (e) {
-                                      console.log('Could not close auth window:', e);
+                                      console.log(
+                                        'Could not close auth window:',
+                                        e
+                                      );
                                     }
-                                    const { accessToken, channelId, channelName } = event.data;
+                                    const {
+                                      accessToken,
+                                      channelId,
+                                      channelName,
+                                    } = event.data;
 
                                     setMessage('Generating Reclaim proof...');
 
                                     try {
-                                      const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          accessToken,
-                                          channelId,
-                                          channelName,
-                                          walletAddress,
-                                        }),
-                                      });
+                                      const proofResponse = await fetch(
+                                        '/api/reclaim/generate-creator-proof',
+                                        {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            accessToken,
+                                            channelId,
+                                            channelName,
+                                            walletAddress,
+                                          }),
+                                        }
+                                      );
 
-                                      const proofData = await proofResponse.json();
+                                      const proofData =
+                                        await proofResponse.json();
 
                                       if (proofData.success) {
-                                        setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
-                                        sessionStorage.setItem('youtube-connected', 'true');
-                                        sessionStorage.setItem('youtube-channel-id', channelId);
+                                        setConnectedAccounts((prev) => ({
+                                          ...prev,
+                                          youtube: true,
+                                        }));
+                                        sessionStorage.setItem(
+                                          'youtube-connected',
+                                          'true'
+                                        );
+                                        sessionStorage.setItem(
+                                          'youtube-channel-id',
+                                          channelId
+                                        );
                                         setYoutubeChannelId(channelId);
-                                        sessionStorage.removeItem('youtube-oauth-session');
-                                        setMessage('YouTube verified with Reclaim!');
+                                        sessionStorage.removeItem(
+                                          'youtube-oauth-session'
+                                        );
+                                        setMessage(
+                                          'YouTube verified with Reclaim!'
+                                        );
                                       } else {
-                                        setMessage(`Failed to verify YouTube: ${proofData.error || 'Unknown error'}`);
-                                        console.error('Reclaim proof error:', proofData);
+                                        setMessage(
+                                          `Failed to verify YouTube: ${proofData.error || 'Unknown error'}`
+                                        );
+                                        console.error(
+                                          'Reclaim proof error:',
+                                          proofData
+                                        );
                                       }
                                     } catch (error) {
-                                      console.error('Reclaim proof error:', error);
+                                      console.error(
+                                        'Reclaim proof error:',
+                                        error
+                                      );
                                       setMessage('Failed to generate proof');
                                     }
 
                                     setTimeout(() => setMessage(''), 5000);
-                                    window.removeEventListener('message', handleMessage);
+                                    window.removeEventListener(
+                                      'message',
+                                      handleMessage
+                                    );
                                   }
                                 };
 
-                                window.addEventListener('message', handleMessage);
+                                window.addEventListener(
+                                  'message',
+                                  handleMessage
+                                );
                               }
                               // Mobile browser (not Farcaster): Redirect
                               else {
@@ -1065,7 +1139,9 @@ export function LiquidGlassOverlay({
                               setTimeout(() => setMessage(''), 3000);
                             }
                           }}
-                          disabled={!mounted || contractLoading || !walletAddress}
+                          disabled={
+                            !mounted || contractLoading || !walletAddress
+                          }
                           className='w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105'
                           style={{
                             background: connectedAccounts.youtube
@@ -1190,12 +1266,15 @@ export function LiquidGlassOverlay({
                           Creator Coin Address
                         </h3>
                         <p className='text-white/60 text-xs mb-4'>
-                          Enter the address of your Zora creator coin contract (optional)
+                          Enter the address of your Zora creator coin contract
+                          (optional)
                         </p>
                         <Input
                           type='text'
                           value={tokenContractAddress}
-                          onChange={(e) => setTokenContractAddress(e.target.value)}
+                          onChange={(e) =>
+                            setTokenContractAddress(e.target.value)
+                          }
                           placeholder='0x...'
                           className='w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40'
                           style={{
@@ -1205,11 +1284,12 @@ export function LiquidGlassOverlay({
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                           }}
                         />
-                        {tokenContractAddress && !tokenContractAddress.startsWith('0x') && (
-                          <p className='text-red-400 text-xs mt-2'>
-                            Address must start with 0x
-                          </p>
-                        )}
+                        {tokenContractAddress &&
+                          !tokenContractAddress.startsWith('0x') && (
+                            <p className='text-red-400 text-xs mt-2'>
+                              Address must start with 0x
+                            </p>
+                          )}
                       </div>
                     )}
 
@@ -1217,150 +1297,150 @@ export function LiquidGlassOverlay({
                     {(connectedAccounts.youtube ||
                       connectedAccounts.instagram ||
                       connectedAccounts.twitter) && (
-                        <Button
-                          onClick={() => {
-                            // Use the actual YouTube channel ID
-                            if (!youtubeChannelId) {
-                              setMessage('Please connect YouTube first');
-                              setTimeout(() => setMessage(''), 3000);
-                              return;
-                            }
-                            createClaimPeriod(youtubeChannelId);
-                          }}
-                          disabled={
-                            claimPeriods.some((p) => p.isActive) ||
-                            contractLoading ||
-                            !walletAddress ||
-                            !youtubeChannelId
+                      <Button
+                        onClick={() => {
+                          // Use the actual YouTube channel ID
+                          if (!youtubeChannelId) {
+                            setMessage('Please connect YouTube first');
+                            setTimeout(() => setMessage(''), 3000);
+                            return;
                           }
-                          className='w-full rounded-xl py-6 transition-all duration-200 hover:scale-105'
-                          style={{
-                            background:
-                              claimPeriods.some((p) => p.isActive) ||
-                                !walletAddress
-                                ? 'rgba(255, 255, 255, 0.05)'
-                                : 'rgba(34, 197, 94, 0.2)',
-                            border: '1px solid rgba(34, 197, 94, 0.3)',
-                          }}
-                        >
-                          <Plus className='h-5 w-5 mr-2 text-white' />
-                          <span className='text-white font-[Satoshi]'>
-                            {!walletAddress
-                              ? 'Connect Wallet First'
-                              : claimPeriods.some((p) => p.isActive)
-                                ? 'Period Already Active'
-                                : contractLoading
-                                  ? 'Creating...'
-                                  : 'Create Claim Period'}
-                          </span>
-                        </Button>
-                      )}
+                          createClaimPeriod(youtubeChannelId);
+                        }}
+                        disabled={
+                          claimPeriods.some((p) => p.isActive) ||
+                          contractLoading ||
+                          !walletAddress ||
+                          !youtubeChannelId
+                        }
+                        className='w-full rounded-xl py-6 transition-all duration-200 hover:scale-105'
+                        style={{
+                          background:
+                            claimPeriods.some((p) => p.isActive) ||
+                            !walletAddress
+                              ? 'rgba(255, 255, 255, 0.05)'
+                              : 'rgba(34, 197, 94, 0.2)',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                        }}
+                      >
+                        <Plus className='h-5 w-5 mr-2 text-white' />
+                        <span className='text-white font-[Satoshi]'>
+                          {!walletAddress
+                            ? 'Connect Wallet First'
+                            : claimPeriods.some((p) => p.isActive)
+                              ? 'Period Already Active'
+                              : contractLoading
+                                ? 'Creating...'
+                                : 'Create Claim Period'}
+                        </span>
+                      </Button>
+                    )}
 
                     {/* Claim Periods List */}
                     {(transformedClaimPeriods.length > 0 ||
                       (walletAddress && dbClaimPeriods)) && (
-                        <div
-                          className='rounded-2xl p-6'
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            backdropFilter: 'blur(30px)',
-                            WebkitBackdropFilter: 'blur(30px)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                          }}
-                        >
-                          <h3 className='text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]'>
-                            Claim Periods
-                          </h3>
-                          {transformedClaimPeriods.length === 0 ? (
-                            <div className='text-white/60 text-sm text-center py-4'>
-                              No claim periods yet
-                            </div>
-                          ) : (
-                            <div className='space-y-3'>
-                              {transformedClaimPeriods.map((period) => (
-                                <div
-                                  key={period.id}
-                                  className='rounded-xl p-4'
-                                  style={{
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    border: period.isActive
-                                      ? '1px solid rgba(34, 197, 94, 0.3)'
-                                      : '1px solid rgba(255, 255, 255, 0.1)',
-                                  }}
-                                >
-                                  <div className='flex items-center justify-between mb-2'>
-                                    <div className='flex items-center gap-2'>
-                                      {period.isActive ? (
-                                        <Clock className='h-4 w-4 text-green-400' />
-                                      ) : (
-                                        <Check className='h-4 w-4 text-white/60' />
-                                      )}
-                                      <span className='text-white text-sm font-[Satoshi]'>
-                                        {period.isActive ? 'Active' : 'Closed'}
-                                      </span>
-                                    </div>
-                                    <span className='text-white/60 text-xs'>
-                                      {period.proofsCount} proofs
+                      <div
+                        className='rounded-2xl p-6'
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <h3 className='text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]'>
+                          Claim Periods
+                        </h3>
+                        {transformedClaimPeriods.length === 0 ? (
+                          <div className='text-white/60 text-sm text-center py-4'>
+                            No claim periods yet
+                          </div>
+                        ) : (
+                          <div className='space-y-3'>
+                            {transformedClaimPeriods.map((period) => (
+                              <div
+                                key={period.id}
+                                className='rounded-xl p-4'
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: period.isActive
+                                    ? '1px solid rgba(34, 197, 94, 0.3)'
+                                    : '1px solid rgba(255, 255, 255, 0.1)',
+                                }}
+                              >
+                                <div className='flex items-center justify-between mb-2'>
+                                  <div className='flex items-center gap-2'>
+                                    {period.isActive ? (
+                                      <Clock className='h-4 w-4 text-green-400' />
+                                    ) : (
+                                      <Check className='h-4 w-4 text-white/60' />
+                                    )}
+                                    <span className='text-white text-sm font-[Satoshi]'>
+                                      {period.isActive ? 'Active' : 'Closed'}
                                     </span>
                                   </div>
-                                  <div className='text-white/60 text-xs mb-3'>
-                                    Started:{' '}
-                                    {period.startDate.toLocaleDateString()}
-                                  </div>
-                                  {period.isActive ? (
-                                    <Button
-                                      onClick={async () => {
-                                        // Call smart contract to close period
-                                        try {
-                                          setContractLoading(true);
-                                          setMessage('Closing claim period...');
-                                          // Implementation would go here
-                                          setMessage(
-                                            'Period closed successfully!'
-                                          );
-                                        } catch (error) {
-                                          setMessage('Failed to close period');
-                                        } finally {
-                                          setContractLoading(false);
-                                          setTimeout(() => setMessage(''), 3000);
-                                        }
-                                      }}
-                                      disabled={contractLoading}
-                                      className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
-                                      style={{
-                                        background: 'rgba(239, 68, 68, 0.2)',
-                                        border:
-                                          '1px solid rgba(239, 68, 68, 0.3)',
-                                      }}
-                                    >
-                                      <span className='text-white text-sm font-[Satoshi]'>
-                                        Close Period
-                                      </span>
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      onClick={() => {
-                                        setSelectedClaimPeriodForAirdrop(period);
-                                        setCurrentView('airdrop');
-                                      }}
-                                      className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
-                                      style={{
-                                        background: 'rgba(59, 130, 246, 0.2)',
-                                        border:
-                                          '1px solid rgba(59, 130, 246, 0.3)',
-                                      }}
-                                    >
-                                      <span className='text-white text-sm font-[Satoshi]'>
-                                        Setup Airdrop
-                                      </span>
-                                    </Button>
-                                  )}
+                                  <span className='text-white/60 text-xs'>
+                                    {period.proofsCount} proofs
+                                  </span>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                <div className='text-white/60 text-xs mb-3'>
+                                  Started:{' '}
+                                  {period.startDate.toLocaleDateString()}
+                                </div>
+                                {period.isActive ? (
+                                  <Button
+                                    onClick={async () => {
+                                      // Call smart contract to close period
+                                      try {
+                                        setContractLoading(true);
+                                        setMessage('Closing claim period...');
+                                        // Implementation would go here
+                                        setMessage(
+                                          'Period closed successfully!'
+                                        );
+                                      } catch (error) {
+                                        setMessage('Failed to close period');
+                                      } finally {
+                                        setContractLoading(false);
+                                        setTimeout(() => setMessage(''), 3000);
+                                      }
+                                    }}
+                                    disabled={contractLoading}
+                                    className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
+                                    style={{
+                                      background: 'rgba(239, 68, 68, 0.2)',
+                                      border:
+                                        '1px solid rgba(239, 68, 68, 0.3)',
+                                    }}
+                                  >
+                                    <span className='text-white text-sm font-[Satoshi]'>
+                                      Close Period
+                                    </span>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedClaimPeriodForAirdrop(period);
+                                      setCurrentView('airdrop');
+                                    }}
+                                    className='w-full rounded-lg py-2 transition-all duration-200 hover:scale-105'
+                                    style={{
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      border:
+                                        '1px solid rgba(59, 130, 246, 0.3)',
+                                    }}
+                                  >
+                                    <span className='text-white text-sm font-[Satoshi]'>
+                                      Setup Airdrop
+                                    </span>
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1455,7 +1535,9 @@ export function LiquidGlassOverlay({
                             : '$0.00'}
                         </div>
                         <div className='text-white/40 text-xs mt-1'>
-                          {mounted && walletAddress ? `${ethBalance} ETH` : '0.000000 ETH'}
+                          {mounted && walletAddress
+                            ? `${ethBalance} ETH`
+                            : '0.000000 ETH'}
                         </div>
                       </div>
 
@@ -1533,9 +1615,9 @@ export function LiquidGlassOverlay({
                         style={{
                           background:
                             airdropAmount &&
-                              parseFloat(airdropAmount) > 0 &&
-                              parseFloat(airdropAmount) <= balance &&
-                              walletAddress
+                            parseFloat(airdropAmount) > 0 &&
+                            parseFloat(airdropAmount) <= balance &&
+                            walletAddress
                               ? 'rgba(34, 197, 94, 0.2)'
                               : 'rgba(255, 255, 255, 0.05)',
                           border: '1px solid rgba(34, 197, 94, 0.3)',
