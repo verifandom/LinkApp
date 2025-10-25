@@ -95,6 +95,7 @@ export function LiquidGlassOverlay({
   const [selectedClaimPeriodForAirdrop, setSelectedClaimPeriodForAirdrop] =
     useState<ClaimPeriod | null>(null);
   const [airdropAmount, setAirdropAmount] = useState('');
+  const [isPolling, setIsPolling] = useState(false);
 
   // Use Farcaster wallet address instead of manual connection
   const walletAddress = farcasterWalletAddress;
@@ -164,7 +165,83 @@ export function LiquidGlassOverlay({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Poll for OAuth result when in mini app
+  // Function to start polling for OAuth completion
+  const startOAuthPolling = React.useCallback((sessionId: string) => {
+    if (isPolling) return; // Prevent multiple polling instances
+
+    console.log('Starting OAuth polling for session:', sessionId);
+    setIsPolling(true);
+    setMessage('Checking for YouTube connection...');
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log('Polling OAuth session...');
+        const response = await fetch(`/api/oauth/poll?sessionId=${sessionId}`);
+        const data = await response.json();
+        console.log('Poll response:', data);
+
+        if (data.success) {
+          // OAuth completed! Generate Reclaim proof
+          console.log('OAuth successful, generating proof...');
+          clearInterval(pollInterval);
+          setIsPolling(false);
+          sessionStorage.removeItem('youtube-oauth-session');
+          setMessage('Generating Reclaim proof...');
+
+          const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: data.accessToken,
+              channelId: data.channelId,
+              channelName: data.channelName,
+              // tokenContractAddress can be added later manually
+            }),
+          });
+
+          const proofData = await proofResponse.json();
+          console.log('Reclaim proof response:', proofData);
+
+          if (proofData.success) {
+            setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
+            sessionStorage.setItem('youtube-connected', 'true');
+            sessionStorage.setItem('youtube-channel-id', data.channelId);
+            setYoutubeChannelId(data.channelId);
+            setMessage('YouTube verified with Reclaim!');
+          } else {
+            setMessage(`Failed to verify YouTube: ${proofData.error || 'Unknown error'}`);
+            console.error('Reclaim proof error:', proofData);
+          }
+
+          setTimeout(() => setMessage(''), 5000);
+        } else if (data.pending) {
+          console.log('OAuth still pending...');
+        }
+      } catch (error) {
+        console.error('OAuth polling error:', error);
+        setMessage('Error checking OAuth status');
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Stop polling after 5 minutes
+    const timeout = setTimeout(() => {
+      console.log('OAuth polling timeout');
+      clearInterval(pollInterval);
+      setIsPolling(false);
+      sessionStorage.removeItem('youtube-oauth-session');
+      setMessage('OAuth timeout - please try again');
+      setTimeout(() => setMessage(''), 3000);
+    }, 300000);
+
+    // Return cleanup function
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+      setIsPolling(false);
+    };
+  }, [isPolling]);
+
+  // Poll for OAuth result when in mini app (on mount and when returning from OAuth)
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
 
@@ -182,68 +259,10 @@ export function LiquidGlassOverlay({
     const sessionId = sessionStorage.getItem('youtube-oauth-session');
     if (!sessionId) return;
 
-    setMessage('Checking for YouTube connection...');
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/oauth/poll?sessionId=${sessionId}`);
-        const data = await response.json();
-
-        if (data.success) {
-          // OAuth completed! Generate Reclaim proof
-          clearInterval(pollInterval);
-          sessionStorage.removeItem('youtube-oauth-session');
-          setMessage('Generating Reclaim proof...');
-
-          const savedWallet = sessionStorage.getItem('youtube-auth-wallet');
-          if (!savedWallet) {
-            setMessage('Wallet address not found');
-            return;
-          }
-
-          const proofResponse = await fetch('/api/reclaim/generate-creator-proof', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accessToken: data.accessToken,
-              userAddress: savedWallet,
-              channelId: data.channelId,
-              channelName: data.channelName,
-            }),
-          });
-
-          const proofData = await proofResponse.json();
-          if (proofData.success) {
-            setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
-            sessionStorage.setItem('youtube-connected', 'true');
-            sessionStorage.setItem('youtube-channel-id', data.channelId);
-            sessionStorage.removeItem('youtube-auth-wallet');
-            setYoutubeChannelId(data.channelId);
-            setMessage('YouTube verified with Reclaim!');
-          } else {
-            setMessage('Failed to verify YouTube');
-          }
-
-          setTimeout(() => setMessage(''), 3000);
-        }
-      } catch (error) {
-        console.error('OAuth polling error:', error);
-      }
-    }, 10000); // Poll every 10 seconds
-
-    // Stop polling after 5 minutes
-    const timeout = setTimeout(() => {
-      clearInterval(pollInterval);
-      sessionStorage.removeItem('youtube-oauth-session');
-      setMessage('OAuth timeout - please try again');
-      setTimeout(() => setMessage(''), 3000);
-    }, 300000);
-
-    return () => {
-      clearInterval(pollInterval);
-      clearTimeout(timeout);
-    };
-  }, [mounted]);
+    // Start polling
+    const cleanup = startOAuthPolling(sessionId);
+    return cleanup;
+  }, [mounted, startOAuthPolling]);
 
   // Fetch ETH price
   useEffect(() => {
@@ -908,8 +927,7 @@ export function LiquidGlassOverlay({
                                 return;
                               }
 
-                              // Store session ID and wallet for polling after OAuth completes
-                              sessionStorage.setItem('youtube-auth-wallet', walletAddress);
+                              // Store session ID for polling after OAuth completes
                               sessionStorage.setItem('youtube-oauth-session', sessionId);
 
                               // Note: sessionId is already in the OAuth state parameter (via authUrl)
@@ -921,12 +939,15 @@ export function LiquidGlassOverlay({
                                   const { default: sdk } = await import('@farcaster/miniapp-sdk');
                                   await sdk.actions.openUrl(authUrl);
                                   setMessage('Complete OAuth in browser, then return to app');
+
+                                  // Start polling immediately for mini app
+                                  startOAuthPolling(sessionId);
                                 } catch (error) {
                                   console.error('SDK openUrl error:', error);
                                   window.location.href = authUrl;
                                 }
                               } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                                // Mobile browser: redirect directly
+                                // Mobile browser: redirect directly (will reload page and useEffect will pick up polling)
                                 window.location.href = authUrl;
                               } else {
                                 // Desktop: use popup
@@ -954,9 +975,9 @@ export function LiquidGlassOverlay({
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
                                           accessToken,
-                                          userAddress: walletAddress,
                                           channelId,
                                           channelName,
+                                          // tokenContractAddress can be added later manually
                                         }),
                                       });
 
@@ -965,16 +986,19 @@ export function LiquidGlassOverlay({
                                       if (proofData.success) {
                                         setConnectedAccounts((prev) => ({ ...prev, youtube: true }));
                                         sessionStorage.setItem('youtube-connected', 'true');
+                                        sessionStorage.setItem('youtube-channel-id', channelId);
+                                        setYoutubeChannelId(channelId);
                                         setMessage('YouTube verified with Reclaim!');
                                       } else {
-                                        setMessage('Failed to verify YouTube');
+                                        setMessage(`Failed to verify YouTube: ${proofData.error || 'Unknown error'}`);
+                                        console.error('Reclaim proof error:', proofData);
                                       }
                                     } catch (error) {
                                       console.error('Reclaim proof error:', error);
                                       setMessage('Failed to generate proof');
                                     }
 
-                                    setTimeout(() => setMessage(''), 3000);
+                                    setTimeout(() => setMessage(''), 5000);
                                     window.removeEventListener('message', handleMessage);
                                   }
                                 };
