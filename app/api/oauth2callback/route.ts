@@ -84,11 +84,10 @@ export async function GET(request: NextRequest) {
     const channelId = channel.id || '';
     const channelName = channel.snippet?.title || '';
 
-    // Check if it's a mobile/mini app request
-    const isMobile = request.headers.get('user-agent')?.match(/iPhone|iPad|iPod|Android/i);
-
-    if ((isMobile || !request.headers.get('referer')?.includes('oauth')) && sessionId) {
-      // Mobile: Store auth data in session for polling
+    // Store auth data in session for polling
+    // We always store the session data because the client determines if it's mobile/desktop
+    // The client passes sessionId in state, so if sessionId exists, store the data
+    if (sessionId) {
       sessionStore.set(sessionId, {
         tokens: {
           access_token: tokens.access_token,
@@ -176,10 +175,21 @@ export async function GET(request: NextRequest) {
                 setTimeout(() => window.close(), 1000);
               }
 
-              // Auto-close or redirect after showing success message
-              setTimeout(() => {
-                returnToFarcaster();
-              }, 1500);
+              // Try to send postMessage to opener first (for desktop popup flow)
+              if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                  type: 'youtube-auth-success',
+                  accessToken: '${tokens.access_token}',
+                  channelId: '${channelId}',
+                  channelName: '${channelName}'
+                }, '*');
+                setTimeout(() => window.close(), 2000);
+              } else {
+                // No opener, this is mobile redirect flow - auto-redirect to Farcaster
+                setTimeout(() => {
+                  returnToFarcaster();
+                }, 1500);
+              }
             </script>
           </body>
         </html>
@@ -192,59 +202,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Desktop: Return HTML that sends message to opener window
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Authentication Successful</title>
-          <style>
-            body {
-              font-family: system-ui, -apple-system, sans-serif;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-              margin: 0;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-            }
-            .container {
-              text-align: center;
-              padding: 2rem;
-            }
-            .checkmark {
-              font-size: 4rem;
-              margin-bottom: 1rem;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="checkmark">✓</div>
-            <h1>YouTube Connected!</h1>
-            <p>You can close this window</p>
-          </div>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'youtube-auth-success',
-                accessToken: '${tokens.access_token}',
-                channelId: '${channelId}',
-                channelName: '${channelName}'
-              }, '*');
-            }
-            setTimeout(() => window.close(), 2000);
-          </script>
-        </body>
-      </html>
-    `;
-
-    return new NextResponse(html, {
-      headers: {
-        'Content-Type': 'text/html',
-      },
-    });
+    // Fallback (should not reach here as we always have a sessionId)
+    return NextResponse.json({ error: 'No session ID found' }, { status: 400 });
   } catch (error) {
     console.error('Error in OAuth callback:', error);
     const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';

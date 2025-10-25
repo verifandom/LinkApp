@@ -95,7 +95,6 @@ export function LiquidGlassOverlay({
   const [selectedClaimPeriodForAirdrop, setSelectedClaimPeriodForAirdrop] =
     useState<ClaimPeriod | null>(null);
   const [airdropAmount, setAirdropAmount] = useState('');
-  const [isPolling, setIsPolling] = useState(false);
 
   // Use Farcaster wallet address instead of manual connection
   const walletAddress = farcasterWalletAddress;
@@ -168,10 +167,7 @@ export function LiquidGlassOverlay({
 
   // Function to start polling for OAuth completion
   const startOAuthPolling = useCallback((sessionId: string) => {
-    if (isPolling) return; // Prevent multiple polling instances
-
     console.log('Starting OAuth polling for session:', sessionId);
-    setIsPolling(true);
     setMessage('Checking for YouTube connection...');
 
     const pollInterval = setInterval(async () => {
@@ -185,7 +181,6 @@ export function LiquidGlassOverlay({
           // OAuth completed! Generate Reclaim proof
           console.log('OAuth successful, generating proof...');
           clearInterval(pollInterval);
-          setIsPolling(false);
           sessionStorage.removeItem('youtube-oauth-session');
           setMessage('Generating Reclaim proof...');
 
@@ -228,7 +223,6 @@ export function LiquidGlassOverlay({
     const timeout = setTimeout(() => {
       console.log('OAuth polling timeout');
       clearInterval(pollInterval);
-      setIsPolling(false);
       sessionStorage.removeItem('youtube-oauth-session');
       setMessage('OAuth timeout - please try again');
       setTimeout(() => setMessage(''), 3000);
@@ -238,9 +232,8 @@ export function LiquidGlassOverlay({
     return () => {
       clearInterval(pollInterval);
       clearTimeout(timeout);
-      setIsPolling(false);
     };
-  }, [isPolling]);
+  }, []);
 
   // Poll for OAuth result when in mini app (on mount and when returning from OAuth)
   useEffect(() => {
@@ -372,12 +365,37 @@ export function LiquidGlassOverlay({
         BigInt(endTime)
       );
 
-      setMessage('Claim period created successfully!');
       console.log('Transaction hash:', hash);
+      setMessage('Syncing to database...');
 
-      // Update local state (refresh data from DB instead of manual update)
-      // The DB sync will handle this, so we can just refresh the data
-      // For now, we skip updating local state since the DB will be the source of truth
+      // Get the claim period ID from on-chain (it's the nextClaimPeriodId - 1)
+      const nextId = await linkUtils.getNextClaimPeriodId();
+      const claimPeriodId = nextId - BigInt(1);
+
+      // Sync to database
+      try {
+        const syncResponse = await fetch('/api/db/sync-claim-period', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelId,
+            claimPeriodId: claimPeriodId.toString(),
+            startTime: now.toString(),
+            endTime: endTime.toString(),
+          }),
+        });
+
+        const syncData = await syncResponse.json();
+        if (!syncData.success) {
+          console.error('Failed to sync claim period to DB:', syncData);
+          setMessage('Claim period created but DB sync failed');
+        } else {
+          setMessage('Claim period created successfully!');
+        }
+      } catch (syncError) {
+        console.error('Error syncing claim period:', syncError);
+        setMessage('Claim period created but DB sync failed');
+      }
     } catch (error) {
       console.error('Error creating claim period:', error);
       setMessage('Failed to create claim period');
