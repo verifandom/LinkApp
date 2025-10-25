@@ -206,8 +206,59 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fallback (should not reach here as we always have a sessionId)
-    return NextResponse.json({ error: 'No session ID found' }, { status: 400 });
+    // Desktop: Return HTML that sends message to opener window
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Authentication Successful</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .container {
+              text-align: center;
+              padding: 2rem;
+            }
+            .checkmark {
+              font-size: 4rem;
+              margin-bottom: 1rem;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="checkmark">✓</div>
+            <h1>YouTube Connected!</h1>
+            <p>You can close this window</p>
+          </div>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'youtube-auth-success',
+                accessToken: '${tokens.access_token}',
+                channelId: '${channelId}',
+                channelName: '${channelName}'
+              }, '*');
+            }
+            setTimeout(() => window.close(), 2000);
+          </script>
+        </body>
+      </html>
+    `;
+
+    return new NextResponse(html, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+    });
   } catch (error) {
     console.error('Error in OAuth callback:', error);
     const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';
