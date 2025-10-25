@@ -5,7 +5,7 @@ import { sessionStore } from '@/lib/server/session-store';
 /**
  * GET /api/oauth2callback
  *
- * Handles Google OAuth callback from the browser OAuth flow
+ * Handles Google OAuth callback from browser OAuth flow
  * Exchanges auth code for tokens and stores session data in-memory
  *
  * Flow:
