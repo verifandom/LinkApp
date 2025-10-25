@@ -991,7 +991,12 @@ export function LiquidGlassOverlay({
                                 // Listen for postMessage from popup
                                 const handleMessage = async (event: MessageEvent) => {
                                   if (event.data.type === 'youtube-auth-success') {
-                                    authWindow?.close();
+                                    // Close the popup window (since COOP blocks window.close() from within)
+                                    try {
+                                      authWindow?.close();
+                                    } catch (e) {
+                                      console.log('Could not close auth window:', e);
+                                    }
                                     const { accessToken, channelId, channelName } = event.data;
 
                                     setMessage('Generating Reclaim proof...');

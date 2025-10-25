@@ -247,8 +247,9 @@ export async function GET(request: NextRequest) {
                 channelId: '${channelId}',
                 channelName: '${channelName}'
               }, '*');
+              // Note: window.close() is blocked by Cross-Origin-Opener-Policy
+              // User can close the window manually, or the opener can close it
             }
-            setTimeout(() => window.close(), 2000);
           </script>
         </body>
       </html>
