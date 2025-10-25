@@ -12,12 +12,13 @@ generator client {
 
 // Creators table - tracks registered creators
 model Creator {
-  id            Int     @id @default(autoincrement())
-  walletAddress String  @unique @db.VarChar(42) // Ethereum address
-  channelId     String  @unique @db.VarChar(255) // YouTube channel ID
-  channelName   String  @db.VarChar(255)
-  reclaimProof  String? @db.Text // Reclaim proof JSON for on-chain registration
-  registeredAt  DateTime @default(now())
+  id                   Int     @id @default(autoincrement())
+  channelId            String  @unique @db.VarChar(255) // YouTube channel ID (primary identifier)
+  channelName          String  @db.VarChar(255)
+  tokenContractAddress String? @db.VarChar(42) // Zora coin contract address (set after YouTube auth)
+  reclaimProof         String? @db.Text // Reclaim proof JSON for on-chain registration
+  registeredAt         DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
 
   // Relations
   claimPeriods      ClaimPeriod[]

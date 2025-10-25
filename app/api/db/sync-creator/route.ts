@@ -8,18 +8,23 @@ import { createCreator } from '@/lib/db';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { walletAddress, channelId, channelName } = await request.json();
+    const { channelId, channelName, tokenContractAddress, reclaimProof } = await request.json();
 
     // Validate input
-    if (!walletAddress || !channelId || !channelName) {
+    if (!channelId || !channelName) {
       return NextResponse.json(
-        { error: 'Missing required fields: walletAddress, channelId, channelName' },
+        { error: 'Missing required fields: channelId, channelName' },
         { status: 400 }
       );
     }
 
     // Create or update creator in database
-    const creator = await createCreator(walletAddress, channelId, channelName);
+    const creator = await createCreator(
+      channelId,
+      channelName,
+      reclaimProof,
+      tokenContractAddress
+    );
 
     return NextResponse.json(
       {

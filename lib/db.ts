@@ -26,22 +26,24 @@ export { prisma };
  * Creator operations
  */
 export async function createCreator(
-  walletAddress: string,
   channelId: string,
   channelName: string,
-  reclaimProof?: string
+  reclaimProof?: string,
+  tokenContractAddress?: string
 ) {
   try {
     const creator = await prisma.creator.upsert({
-      where: { walletAddress: walletAddress.toLowerCase() },
+      where: { channelId },
       update: {
+        channelName,
         reclaimProof: reclaimProof || undefined,
+        tokenContractAddress: tokenContractAddress || undefined,
       },
       create: {
-        walletAddress: walletAddress.toLowerCase(),
         channelId,
         channelName,
         reclaimProof,
+        tokenContractAddress,
       },
     });
     return creator;
@@ -51,14 +53,18 @@ export async function createCreator(
   }
 }
 
-export async function getCreator(walletAddress: string) {
+export async function updateCreatorTokenAddress(
+  channelId: string,
+  tokenContractAddress: string
+) {
   try {
-    const creator = await prisma.creator.findUnique({
-      where: { walletAddress: walletAddress.toLowerCase() },
+    const creator = await prisma.creator.update({
+      where: { channelId },
+      data: { tokenContractAddress },
     });
-    return creator || null;
+    return creator;
   } catch (error) {
-    console.error('Error getting creator:', error);
+    console.error('Error updating creator token address:', error);
     throw error;
   }
 }

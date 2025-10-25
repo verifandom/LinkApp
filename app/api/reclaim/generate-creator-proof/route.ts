@@ -14,10 +14,10 @@ import { createCreator } from '@/lib/db';
  *
  * Request body:
  * {
- *   accessToken: string,    // Google OAuth access token
- *   userAddress: string,    // User's wallet address
- *   channelId: string,      // YouTube channel ID being verified
- *   channelName?: string    // Optional channel name
+ *   accessToken: string,           // Google OAuth access token
+ *   channelId: string,              // YouTube channel ID being verified
+ *   channelName?: string,           // Optional channel name
+ *   tokenContractAddress?: string   // Optional Zora coin contract address (set after YouTube auth)
  * }
  *
  * Response:
@@ -31,9 +31,9 @@ import { createCreator } from '@/lib/db';
 
 const GenerateCreatorProofSchema = z.object({
   accessToken: z.string(),
-  userAddress: z.string().startsWith('0x'),
   channelId: z.string(),
   channelName: z.string().optional(),
+  tokenContractAddress: z.string().startsWith('0x').optional(), // Zora coin contract address
 });
 
 export async function POST(request: NextRequest) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accessToken, userAddress, channelId, channelName } =
+    const { accessToken, channelId, channelName, tokenContractAddress } =
       validationResult.data;
 
     try {
@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
       // Store creator and proof in database
       try {
         await createCreator(
-          userAddress,
           channelId,
           channelName || '',
-          JSON.stringify(onchainProof)
+          JSON.stringify(onchainProof),
+          tokenContractAddress
         );
         console.log('Creator and proof stored in database');
       } catch (dbError) {

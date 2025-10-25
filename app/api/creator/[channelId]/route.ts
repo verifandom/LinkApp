@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCreator } from '@/lib/db';
+import { getCreatorByChannelId } from '@/lib/db';
 
 /**
- * GET /api/creator/[address]
+ * GET /api/creator/[channelId]
  *
  * Get creator information including YouTube channelId and Reclaim proof
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { address: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    const { address } = params;
+    const { channelId } = await params;
 
-    if (!address || !address.startsWith('0x')) {
+    if (!channelId) {
       return NextResponse.json(
-        { error: 'Invalid wallet address' },
+        { error: 'Invalid channel ID' },
         { status: 400 }
       );
     }
 
-    const creator = await getCreator(address);
+    const creator = await getCreatorByChannelId(channelId);
 
     if (!creator) {
       return NextResponse.json(
@@ -30,9 +30,9 @@ export async function GET(
     }
 
     return NextResponse.json({
-      walletAddress: creator.walletAddress,
       channelId: creator.channelId,
       channelName: creator.channelName,
+      tokenContractAddress: creator.tokenContractAddress,
       reclaimProof: creator.reclaimProof,
       registeredAt: creator.registeredAt,
     });

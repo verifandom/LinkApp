@@ -2,41 +2,45 @@ import { useQuery } from '@tanstack/react-query';
 
 export interface Creator {
   id: number;
-  wallet_address: string;
-  channel_id: string;
-  channel_name: string;
-  registered_at: string;
+  channelId: string;
+  channelName: string;
+  tokenContractAddress: string | null;
+  reclaimProof: string | null;
+  registeredAt: Date;
+  updatedAt: Date;
 }
 
 export interface ClaimPeriod {
   id: number;
-  creator_id: number;
-  channel_id: string;
-  claim_period_id: string;
-  start_time: string;
-  end_time: string;
-  is_open: boolean;
-  channel_name: string;
-  wallet_address: string;
-  created_at: string;
-  updated_at: string;
+  creatorId: number;
+  channelId: string;
+  claimPeriodId: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  isOpen: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  creator?: Creator; // Optional relation when included
 }
 
 export interface SubscriberAirdrop {
   id: number;
-  subscriber_address: string;
-  claim_period_id: number;
-  creator_id: number;
-  proof_submitted_at: string;
+  subscriberAddress: string;
+  claimPeriodId: number;
+  creatorId: number;
+  proofSubmittedAt: Date;
   status: string;
-  claim_period_id_num: string;
-  start_time: string;
-  end_time: string;
-  is_open: boolean;
-  channel_id: string;
-  channel_name: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: Date;
+  updatedAt: Date;
+  claimPeriod?: {
+    id: number;
+    claimPeriodId: bigint;
+    startTime: bigint;
+    endTime: bigint;
+    isOpen: boolean;
+    channelId: string;
+    creator?: Creator;
+  };
 }
 
 /**
@@ -100,17 +104,19 @@ export function useSubscriberAirdrops(address: string | null) {
  * Sync creator to database after on-chain registration
  */
 export async function syncCreatorToDb(
-  walletAddress: string,
   channelId: string,
-  channelName: string
+  channelName: string,
+  tokenContractAddress?: string,
+  reclaimProof?: string
 ) {
   const response = await fetch('/api/db/sync-creator', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      walletAddress,
       channelId,
       channelName,
+      tokenContractAddress,
+      reclaimProof,
     }),
   });
 

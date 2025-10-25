@@ -131,7 +131,7 @@ export function LiquidGlassOverlay({
     name: creator.channelName,
     points: '0', // We could calculate this from claim periods
     hasActiveClaimPeriod: (dbClaimPeriods || []).some(
-      (p) => p.creator_id === creator.id && p.is_open
+      (p) => p.creatorId === creator.id && p.isOpen
     ),
     connectedSocials: ['youtube'], // Default, could be enhanced
   }));
@@ -140,14 +140,14 @@ export function LiquidGlassOverlay({
   const transformedClaimPeriods: ClaimPeriod[] = (dbClaimPeriods || []).map(
     (period) => ({
       id: period.id,
-      creatorName: period.channelName || 'Unknown',
+      creatorName: period.creator?.channelName || 'Unknown',
       startDate: new Date(parseInt(period.startTime.toString()) * 1000),
-      endDate: period.is_open
+      endDate: period.isOpen
         ? null
         : new Date(parseInt(period.endTime.toString()) * 1000),
-      isActive: period.is_open,
+      isActive: period.isOpen,
       proofsCount: 0, // Would need subscriber count from DB
-      channelId: period.channel_id,
+      channelId: period.channelId,
     })
   );
 
@@ -291,8 +291,8 @@ export function LiquidGlassOverlay({
       // If not registered, register first
       setMessage('Fetching Reclaim proof...');
 
-      // Fetch the real Reclaim proof from database
-      const creatorResponse = await fetch(`/api/creator/${walletAddress}`);
+      // Fetch the real Reclaim proof from database using channelId
+      const creatorResponse = await fetch(`/api/creator/${channelId}`);
       if (!creatorResponse.ok) {
         throw new Error('Creator not found. Please connect YouTube first.');
       }
@@ -504,10 +504,10 @@ export function LiquidGlassOverlay({
                               }}
                             >
                               <p className='text-white text-sm font-[Satoshi] font-semibold'>
-                                {airdrop.channelName}
+                                {airdrop.claimPeriod?.creator?.channelName || 'Unknown'}
                               </p>
                               <p className='text-white/60 text-xs mt-1'>
-                                {airdrop.is_open
+                                {airdrop.claimPeriod?.isOpen
                                   ? 'Active Period'
                                   : 'Period Closed'}
                               </p>
@@ -1103,18 +1103,19 @@ export function LiquidGlassOverlay({
                       connectedAccounts.twitter) && (
                         <Button
                           onClick={() => {
-                            // Use connected social as channel ID
-                            const channelId = connectedAccounts.youtube
-                              ? 'youtube_channel'
-                              : connectedAccounts.instagram
-                                ? 'instagram_channel'
-                                : 'twitter_channel';
-                            createClaimPeriod(channelId);
+                            // Use the actual YouTube channel ID
+                            if (!youtubeChannelId) {
+                              setMessage('Please connect YouTube first');
+                              setTimeout(() => setMessage(''), 3000);
+                              return;
+                            }
+                            createClaimPeriod(youtubeChannelId);
                           }}
                           disabled={
                             claimPeriods.some((p) => p.isActive) ||
                             contractLoading ||
-                            !walletAddress
+                            !walletAddress ||
+                            !youtubeChannelId
                           }
                           className='w-full rounded-xl py-6 transition-all duration-200 hover:scale-105'
                           style={{
