@@ -34,7 +34,7 @@ const GenerateCreatorProofSchema = z.object({
   accessToken: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
-  walletAddress: z.string().startsWith('0x'), // Creator's wallet address (required)
+  walletAddress: z.string().startsWith('0x').length(42), // Creator's wallet address (REQUIRED)
   tokenContractAddress: z.string().startsWith('0x').optional(), // Zora coin contract address
 });
 
@@ -58,17 +58,22 @@ export async function POST(request: NextRequest) {
       validationResult.data;
 
     try {
-      const proof = await generateCreatorProof(accessToken, channelId);
+      console.log('Generating creator proof for channel:', channelId, 'wallet:', walletAddress);
+      const proof = await generateCreatorProof(accessToken, channelId, walletAddress);
+      console.log('Proof generated successfully');
 
-      const onchainProof = transformProofForOnchain(proof);
+      const onchainProof = await transformProofForOnchain(proof, walletAddress);
+      console.log('Proof transformed for on-chain');
+      console.log('Proof owner:', onchainProof.claimInfo?.owner);
+      console.log('Expected wallet:', walletAddress);
 
       // Store creator and proof in database
       try {
         const creator = await createCreator(
           channelId,
           channelName || '',
-          walletAddress,
-          JSON.stringify(onchainProof),
+          walletAddress,                 // ← CORRECT: wallet address as 3rd param
+          JSON.stringify(onchainProof),  // ← CORRECT: proof as 4th param
           tokenContractAddress
         );
         console.log('Creator and proof stored in database:', creator);

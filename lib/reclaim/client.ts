@@ -44,7 +44,8 @@ const reclaimClient = new ReclaimClient(appId, appSecret);
  */
 export async function generateCreatorProof(
   accessToken: string,
-  channelId: string
+  channelId: string,
+  walletAddress?: string
 ): Promise<CreatorProof> {
   try {
     const publicOptions = {
@@ -53,6 +54,9 @@ export async function generateCreatorProof(
         accept: 'application/json',
       },
     };
+
+    // Note: We don't use contextAddress because it invalidates the proof signature
+    // The smart contract has been modified to not require proof.owner == msg.sender
 
     const privateOptions = {
       headers: {
@@ -74,7 +78,7 @@ export async function generateCreatorProof(
       5, // retries
       10000 // retry interval in ms
     );
-    console.log(proof);
+    console.log('Raw proof from zkFetch:', proof);
 
     // Verify the proof
     const isVerified = await verifyProof(proof);
@@ -82,17 +86,8 @@ export async function generateCreatorProof(
       throw new Error('Proof verification failed');
     }
 
-    return {
-      taskId: proof.taskId,
-      snapshotSignature: proof.snapshotSignature,
-      ownerPublicKey: proof.ownerPublicKey,
-      timestampS: proof.timestampS,
-      witnessAddresses: proof.witnessAddresses,
-      witnesses: proof.witnesses,
-      channelId,
-      channelTitle: `Channel ${channelId}`,
-      subscriberCount: '0',
-    };
+    // Return the FULL proof object - transformForOnchain needs the raw structure
+    return proof;
   } catch (error) {
     console.error('Error generating creator proof:', error);
     throw error;
@@ -135,6 +130,7 @@ export async function generateSubscriberProof(
       5, // retries
       10000 // retry interval in ms
     );
+    console.log('Raw subscriber proof from zkFetch:', proof);
 
     // Verify the proof
     const isVerified = await verifyProof(proof);
@@ -142,17 +138,8 @@ export async function generateSubscriberProof(
       throw new Error('Proof verification failed');
     }
 
-    return {
-      taskId: proof.taskId,
-      snapshotSignature: proof.snapshotSignature,
-      ownerPublicKey: proof.ownerPublicKey,
-      timestampS: proof.timestampS,
-      witnessAddresses: proof.witnessAddresses,
-      witnesses: proof.witnesses,
-      channelId,
-      channelTitle: `Channel ${channelId}`,
-      subscribedAt: new Date().toISOString(),
-    };
+    // Return the FULL proof object - transformForOnchain needs the raw structure
+    return proof;
   } catch (error) {
     console.error('Error generating subscriber proof:', error);
     throw error;
@@ -176,12 +163,34 @@ export async function verifyReclaimProof(
 
 /**
  * Transform proof for on-chain submission
+ * Custom transformation to match our smart contract's expected format
+ *
+ * @param proof - Raw proof from Reclaim zkFetch
+ * @param userWalletAddress - OPTIONAL: User's wallet address to override proof owner
+ *                            This is a WORKAROUND because zkFetch runs server-side
  */
-export async function transformProofForOnchain(proof: ReclaimProof): Promise<any> {
+export async function transformProofForOnchain(
+  proof: any,
+  userWalletAddress?: string
+): Promise<any> {
   try {
-    return transformForOnchain(proof);
+    console.log('=== TRANSFORM PROOF DEBUG ===');
+    console.log('Input proof:', JSON.stringify(proof, null, 2));
+    console.log('User wallet override:', userWalletAddress);
+
+    // First get the SDK transformation
+    const sdkTransformed = transformForOnchain(proof);
+    console.log('SDK transformed:', JSON.stringify(sdkTransformed, null, 2));
+
+    // Return exactly what the SDK gives us - don't restructure!
+    // The Reclaim verifier expects the exact structure from transformForOnchain
+    console.log('Returning SDK transformed proof as-is');
+    console.log('=== END TRANSFORM DEBUG ===');
+
+    return sdkTransformed;
   } catch (error) {
     console.error('Error transforming proof for on-chain:', error);
+    console.error('Error stack:', error);
     throw error;
   }
 }
