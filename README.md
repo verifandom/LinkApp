@@ -2,6 +2,8 @@
 
 A Base Mini App that connects web2 creators with their fans through zk-TLS proofs and airdrops.
 
+Here is the smart contract : **0x4A136963f05BAf35F8f87b4E8BF21F3cacC14c05**
+
 ## 🚀 Features
 
 - **Creator Dashboard**: Manage claim periods and distribute airdrops
