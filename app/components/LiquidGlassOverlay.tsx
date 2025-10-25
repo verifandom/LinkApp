@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   User,
@@ -166,7 +166,7 @@ export function LiquidGlassOverlay({
   }, []);
 
   // Function to start polling for OAuth completion
-  const startOAuthPolling = React.useCallback((sessionId: string) => {
+  const startOAuthPolling = useCallback((sessionId: string) => {
     if (isPolling) return; // Prevent multiple polling instances
 
     console.log('Starting OAuth polling for session:', sessionId);
