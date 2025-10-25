@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
 
     // Check if it's a mobile/mini app request
-    const isMobile = request.headers.get('user-agent')?.match(/iPhone|iPad|iPod|Android/i);)
+    const isMobile = request.headers.get('user-agent')?.match(/iPhone|iPad|iPod|Android/i);
     if (sessionId) {
       sessionStore.set(sessionId, {
         tokens: {
