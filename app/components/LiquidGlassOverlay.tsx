@@ -937,8 +937,11 @@ export function LiquidGlassOverlay({
                               // Note: sessionId is already in the OAuth state parameter (via authUrl)
                               // so we don't need to append it as a query param
 
-                              // On mini app, use SDK to open external link
-                              if (isInMiniApp) {
+                              // Check if mobile device
+                              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+                              // On mobile mini app, use SDK to open external link
+                              if (isInMiniApp && isMobile) {
                                 try {
                                   const { default: sdk } = await import('@farcaster/miniapp-sdk');
                                   await sdk.actions.openUrl(authUrl);
@@ -950,11 +953,11 @@ export function LiquidGlassOverlay({
                                   console.error('SDK openUrl error:', error);
                                   window.location.href = authUrl;
                                 }
-                              } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                              } else if (isMobile && !isInMiniApp) {
                                 // Mobile browser: redirect directly (will reload page and useEffect will pick up polling)
                                 window.location.href = authUrl;
                               } else {
-                                // Desktop: use popup
+                                // Desktop (including desktop Farcaster): use popup with postMessage
                                 const width = 600;
                                 const height = 700;
                                 const left = window.screen.width / 2 - width / 2;
