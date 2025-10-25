@@ -934,30 +934,23 @@ export function LiquidGlassOverlay({
                               // Store session ID for polling after OAuth completes
                               sessionStorage.setItem('youtube-oauth-session', sessionId);
 
-                              // Note: sessionId is already in the OAuth state parameter (via authUrl)
-                              // so we don't need to append it as a query param
+                              // Detect if mobile: check screen width (more reliable than user agent in Farcaster)
+                              const isMobileScreen = window.innerWidth <= 768;
 
-                              // Check if mobile device
-                              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-                              // On mobile mini app, use SDK to open external link
-                              if (isInMiniApp && isMobile) {
+                              // Mobile Farcaster: Use SDK to open external browser
+                              if (isInMiniApp && isMobileScreen) {
                                 try {
                                   const { default: sdk } = await import('@farcaster/miniapp-sdk');
                                   await sdk.actions.openUrl(authUrl);
-                                  setMessage('Complete OAuth in browser, then return to app');
-
-                                  // Start polling immediately for mini app
-                                  startOAuthPolling(sessionId);
+                                  setMessage('Complete OAuth in browser, then return to Farcaster');
+                                  // Polling will be handled by useEffect when user returns
                                 } catch (error) {
                                   console.error('SDK openUrl error:', error);
-                                  window.location.href = authUrl;
+                                  setMessage('Failed to open browser');
                                 }
-                              } else if (isMobile && !isInMiniApp) {
-                                // Mobile browser: redirect directly (will reload page and useEffect will pick up polling)
-                                window.location.href = authUrl;
-                              } else {
-                                // Desktop (including desktop Farcaster): use popup with postMessage
+                              }
+                              // Desktop (Farcaster or regular browser): Use popup
+                              else if (!isMobileScreen) {
                                 const width = 600;
                                 const height = 700;
                                 const left = window.screen.width / 2 - width / 2;
@@ -969,6 +962,15 @@ export function LiquidGlassOverlay({
                                   `width=${width},height=${height},left=${left},top=${top}`
                                 );
 
+                                // If popup failed (blocked), start polling instead
+                                if (!authWindow || authWindow.closed) {
+                                  setMessage('Popup blocked. Please allow popups and try again.');
+                                  sessionStorage.removeItem('youtube-oauth-session');
+                                  setTimeout(() => setMessage(''), 3000);
+                                  return;
+                                }
+
+                                // Listen for postMessage from popup
                                 const handleMessage = async (event: MessageEvent) => {
                                   if (event.data.type === 'youtube-auth-success') {
                                     authWindow?.close();
@@ -984,7 +986,6 @@ export function LiquidGlassOverlay({
                                           accessToken,
                                           channelId,
                                           channelName,
-                                          // tokenContractAddress can be added later manually
                                         }),
                                       });
 
@@ -995,6 +996,7 @@ export function LiquidGlassOverlay({
                                         sessionStorage.setItem('youtube-connected', 'true');
                                         sessionStorage.setItem('youtube-channel-id', channelId);
                                         setYoutubeChannelId(channelId);
+                                        sessionStorage.removeItem('youtube-oauth-session');
                                         setMessage('YouTube verified with Reclaim!');
                                       } else {
                                         setMessage(`Failed to verify YouTube: ${proofData.error || 'Unknown error'}`);
@@ -1011,6 +1013,10 @@ export function LiquidGlassOverlay({
                                 };
 
                                 window.addEventListener('message', handleMessage);
+                              }
+                              // Mobile browser (not Farcaster): Redirect
+                              else {
+                                window.location.href = authUrl;
                               }
                             } catch (error) {
                               console.error('YouTube OAuth error:', error);
