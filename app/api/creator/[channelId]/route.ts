@@ -13,6 +13,8 @@ export async function GET(
   try {
     const { channelId } = await params;
 
+    console.log('GET /api/creator/[channelId] - channelId:', channelId);
+
     if (!channelId) {
       return NextResponse.json(
         { error: 'Invalid channel ID' },
@@ -22,7 +24,10 @@ export async function GET(
 
     const creator = await getCreatorByChannelId(channelId);
 
+    console.log('Creator lookup result:', creator);
+
     if (!creator) {
+      console.error('Creator not found for channelId:', channelId);
       return NextResponse.json(
         { error: 'Creator not found' },
         { status: 404 }

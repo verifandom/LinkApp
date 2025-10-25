@@ -62,16 +62,25 @@ export async function POST(request: NextRequest) {
 
       // Store creator and proof in database
       try {
-        await createCreator(
+        const creator = await createCreator(
           channelId,
           channelName || '',
           JSON.stringify(onchainProof),
           tokenContractAddress
         );
-        console.log('Creator and proof stored in database');
+        console.log('Creator and proof stored in database:', creator);
       } catch (dbError) {
-        console.error('Error storing creator in database:', dbError);
-        // Continue even if DB storage fails
+        console.error('CRITICAL: Error storing creator in database:', dbError);
+        console.error('Stack:', dbError instanceof Error ? dbError.stack : 'No stack');
+        // Don't fail silently - this is important
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to store creator in database',
+            details: dbError instanceof Error ? dbError.message : String(dbError),
+          },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json(

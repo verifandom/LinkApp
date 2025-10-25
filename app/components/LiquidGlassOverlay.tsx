@@ -103,6 +103,7 @@ export function LiquidGlassOverlay({
   const [message, setMessage] = useState('');
   const [ethPriceUSD, setEthPriceUSD] = useState<number>(0);
   const [youtubeChannelId, setYoutubeChannelId] = useState<string>('');
+  const [tokenContractAddress, setTokenContractAddress] = useState<string>('');
 
   // Use wagmi hook to get balance
   const { data: balanceData } = useBalance({
@@ -351,8 +352,11 @@ export function LiquidGlassOverlay({
       setContractLoading(true);
       setMessage('Checking creator registration...');
 
+      // Use the token contract address from state, or zero address if not set
+      const tokenAddr = tokenContractAddress || '0x0000000000000000000000000000000000000000';
+
       // Check/register creator first
-      const isRegistered = await checkAndRegisterCreator(channelId);
+      const isRegistered = await checkAndRegisterCreator(channelId, tokenAddr);
       if (!isRegistered) {
         return;
       }
@@ -1120,6 +1124,44 @@ export function LiquidGlassOverlay({
                         </button>
                       </div>
                     </div>
+
+                    {/* Token Contract Address (Zora Coin) - Only show when YouTube is connected */}
+                    {connectedAccounts.youtube && (
+                      <div
+                        className='rounded-2xl p-6'
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <h3 className='text-white/80 text-sm mb-4 font-[Satoshi] text-[20px]'>
+                          Creator Coin Address
+                        </h3>
+                        <p className='text-white/60 text-xs mb-4'>
+                          Enter the address of your Zora creator coin contract (optional)
+                        </p>
+                        <Input
+                          type='text'
+                          value={tokenContractAddress}
+                          onChange={(e) => setTokenContractAddress(e.target.value)}
+                          placeholder='0x...'
+                          className='w-full px-4 py-6 rounded-xl border-none text-white placeholder:text-white/40'
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                          }}
+                        />
+                        {tokenContractAddress && !tokenContractAddress.startsWith('0x') && (
+                          <p className='text-red-400 text-xs mt-2'>
+                            Address must start with 0x
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Create Claim Period (only if at least one social is connected) */}
                     {(connectedAccounts.youtube ||
